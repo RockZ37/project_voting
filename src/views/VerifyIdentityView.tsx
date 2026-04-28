@@ -11,23 +11,65 @@ interface VerifyIdentityViewProps {
 export function VerifyIdentityView({ onVerify, onCancel }: VerifyIdentityViewProps) {
   const [progress, setProgress] = React.useState(0);
   const [isScanning, setIsScanning] = React.useState(false);
+  const [cameraActive, setCameraActive] = React.useState(false);
+  const videoRef = React.useRef<HTMLVideoElement | null>(null);
+  const streamRef = React.useRef<MediaStream | null>(null);
 
+  // progress interval
   React.useEffect(() => {
     let interval: any;
     if (isScanning && progress < 100) {
       interval = setInterval(() => {
-        setProgress((p) => {
-          if (p >= 100) {
-            clearInterval(interval);
-            setTimeout(onVerify, 800);
-            return 100;
-          }
-          return p + 2.5;
-        });
+        setProgress((p) => Math.min(100, p + 2.5));
       }, 50);
     }
     return () => clearInterval(interval);
-  }, [isScanning, progress, onVerify]);
+  }, [isScanning]);
+
+  // When progress reaches 100, finalize verification
+  React.useEffect(() => {
+    if (isScanning && progress >= 100) {
+      // stop scanning animation and camera
+      setIsScanning(false);
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+      }
+      setCameraActive(false);
+      setTimeout(onVerify, 800);
+    }
+  }, [progress, isScanning, onVerify]);
+
+  // Start camera and scanning
+  const startScan = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play().catch(() => {});
+      }
+      setCameraActive(true);
+      setProgress(0);
+      setIsScanning(true);
+    } catch (err) {
+      console.error('Camera access denied or unavailable', err);
+      // fallback to mock image but still run scanning
+      setCameraActive(false);
+      setProgress(0);
+      setIsScanning(true);
+    }
+  };
+
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+      }
+    };
+  }, []);
 
   return (
     <div className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-center p-6">
@@ -45,18 +87,27 @@ export function VerifyIdentityView({ onVerify, onCancel }: VerifyIdentityViewPro
 
         {/* Biometric Frame */}
         <div className="relative w-full aspect-square max-w-[400px] rounded-full overflow-hidden border-8 border-white shadow-2xl mb-10 group bg-surface-container-highest">
-          {/* Mock Video Feed / User Asset */}
-          <div 
-            className="absolute inset-0 bg-cover bg-center grayscale group-hover:grayscale-0 transition-all duration-1000"
-            style={{ backgroundImage: `url('https://picsum.photos/seed/voter/800/800')` }}
-          />
-          
+          {/* Video Feed (camera) or Mock Video Feed / User Asset */}
+          {cameraActive ? (
+            <video
+              ref={videoRef}
+              className="absolute inset-0 object-cover bg-black"
+              playsInline
+              muted
+            />
+          ) : (
+            <div 
+              className="absolute inset-0 bg-cover bg-center grayscale group-hover:grayscale-0 transition-all duration-1000"
+              style={{ backgroundImage: `url('https://picsum.photos/seed/voter/800/800')` }}
+            />
+          )}
+
           {/* Scanner Overlays */}
-          <div className="absolute inset-0 bg-primary-container/40 mix-blend-multiply" />
-          <div className="absolute inset-0 bg-radial-[circle,transparent_40%,rgba(19,27,46,0.8)_75%]" />
+          <div className="absolute inset-0 bg-primary-container/40 mix-blend-multiply pointer-events-none" />
+          <div className="absolute inset-0 bg-radial-[circle,transparent_40%,rgba(19,27,46,0.8)_75%] pointer-events-none" />
 
           {/* Scanner UI */}
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="relative w-64 h-80 border-2 border-dashed border-white/20 rounded-[100px]">
               {/* Brackets */}
               <div className="absolute -top-1 -left-1 w-12 h-12 border-t-4 border-l-4 border-secondary rounded-tl-3xl" />
@@ -76,7 +127,7 @@ export function VerifyIdentityView({ onVerify, onCancel }: VerifyIdentityViewPro
             </div>
           </div>
 
-          <div className="absolute bottom-12 left-0 right-0 flex justify-center">
+          <div className="absolute bottom-12 left-0 right-0 flex justify-center pointer-events-none">
             <div className="bg-primary/80 backdrop-blur-md px-6 py-2 rounded-full border border-white/20">
               <span className="text-white text-[10px] font-bold tracking-widest uppercase">
                 {isScanning ? "Scanning Active" : "Position Your Face In The Frame"}
@@ -103,7 +154,7 @@ export function VerifyIdentityView({ onVerify, onCancel }: VerifyIdentityViewPro
         <div className="w-full max-w-sm flex flex-col gap-3">
           <Button 
             className="h-14 font-bold text-base gap-3" 
-            onClick={() => setIsScanning(true)}
+            onClick={startScan}
             disabled={isScanning}
           >
             <Scan size={20} />

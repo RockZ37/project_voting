@@ -30,10 +30,7 @@ export function AuthView({ onLogin }: AuthViewProps) {
             </div>
             
             <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <label className="text-sm font-semibold text-on-surface-variant">Password</label>
-                <button className="text-xs font-semibold text-secondary hover:underline">Forgot ID?</button>
-              </div>
+              <label className="text-sm font-semibold text-on-surface-variant">Password</label>
               <Input 
                 type="password"
                 placeholder="••••••••••••" 
