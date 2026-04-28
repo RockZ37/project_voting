@@ -1,42 +1,94 @@
-## Development Guide
+# Development Guide
 
-This document describes how to set up a local development environment and common tasks.
+This guide covers setup, daily development workflow, and release checks.
 
-Prereqs
-- Node.js 18+ or compatible
-- pnpm recommended (works with npm/yarn)
+## 1) Environment Setup
 
-Install
+Requirements:
+
+- Node.js 18+
+- pnpm 10+ (recommended)
+
+Install dependencies:
 
 ```bash
 pnpm install
 ```
 
-Start dev server
+## 2) Local Development
+
+Start standard dev server:
 
 ```bash
 pnpm dev
 ```
 
-Type checking / lint
+This runs Vite on port 3000 and binds to all interfaces.
+
+## 3) Mobile/Camera Development
+
+For phone testing, use secure tunnel mode:
+
+```bash
+pnpm run dev:mobile
+```
+
+What this does:
+
+- Finds an open local port
+- Starts Vite on that port
+- Opens an HTTPS localtunnel URL for external/mobile access
+
+Use the printed HTTPS URL in your phone browser. Do not use plain LAN HTTP URL for camera features.
+
+## 4) Type Checking
+
+Run TypeScript checks:
 
 ```bash
 pnpm run lint
 ```
 
-Build
+Current lint script runs:
+
+```bash
+tsc --noEmit
+```
+
+## 5) Build and Preview
+
+Build production assets:
 
 ```bash
 pnpm build
 ```
 
-Design notes
-- The project uses Vite with the React plugin and TypeScript (jsx: react-jsx).
-- Tailwind classes are used throughout; utility `cn` (in `src/lib/utils.ts`) merges classnames using `clsx` + `tailwind-merge`.
+Preview build locally:
 
-TypeScript tips
-- `src/types/react-shims.d.ts` contains shims for `react` and `react/jsx-runtime` if you're working without `@types/react` installed.
-- We installed `@types/react` and `@types/react-dom` as dev dependencies; run `pnpm install` after pulling.
+```bash
+pnpm preview
+```
 
-Troubleshooting
-- If you see `Could not find a declaration file for module 'react'` ensure `@types/react` exists in `devDependencies` and `tsconfig.json` includes `typeRoots`/`include` that contain `src/types`.
+## 6) Core Dependencies in Use
+
+- UI/framework: `react`, `react-dom`, `typescript`
+- Build: `vite`, `@vitejs/plugin-react`
+- Styling: `tailwindcss`, `@tailwindcss/vite`
+- Motion/icons/charts: `motion`, `lucide-react`, `recharts`
+- Face detection: `@tensorflow-models/face-detection`, `@tensorflow/tfjs-*`
+- Mobile HTTPS tunnel: `localtunnel`
+
+## 7) Suggested Dev Workflow
+
+1. Pull latest changes.
+2. Run `pnpm install`.
+3. Run `pnpm run lint` before coding.
+4. Start `pnpm dev` or `pnpm run dev:mobile`.
+5. Re-run `pnpm run lint` after edits.
+6. Build with `pnpm build` before release.
+
+## 8) Notes on Face Verification
+
+- Verification now depends on real face detection, not a fake timer.
+- The scan progresses only when a face is visible.
+- If camera is blocked or unsupported, an explicit error message is shown.

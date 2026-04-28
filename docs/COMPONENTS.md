@@ -1,25 +1,78 @@
-## Components and Views
+# Components and Views
 
-This document lists the primary UI components and page views and where to find them.
+This file documents the current UI building blocks and page behavior.
 
-UI Primitives (`src/components/ui`)
-- `Button.tsx` — polymorphic button with `variant` and `size` props, uses `cn`.
-- `Card.tsx` — container wrapper used widely for panels.
-- `Input.tsx` — text input with optional icon.
+## UI Primitives (`src/components/ui`)
 
-Layout
-- `components/layout/Header.tsx` — top header and navigation controls for switching views.
+### Button
 
-Views (`src/views`)
-- `AuthView.tsx` — login screen and admin shortcut.
-- `VerifyIdentityView.tsx` — biometric verification mock with scanning animation.
-- `BallotView.tsx` — candidate selection with write-in option.
-- `AdminDashboardView.tsx` — charts, controls, and system status.
-- `AdminRegistryView.tsx` — list and manage registered voters.
-- `AdminLogsView.tsx` — audit logs and export controls.
+- Shared button component for primary/outline/ghost actions
+- Supports visual variants and sizing
+- Used across all workflows
 
-Utilities
-- `src/lib/utils.ts` — `cn` helper (clsx + tailwind-merge).
+### Card
 
-Types
-- `src/types.ts` — Candidate, Voter, AuditLog, AppView, etc.
+- Generic container with project styling
+- Used for login panels, review cards, and admin data blocks
+
+### Input
+
+- Styled text input
+- Used in authentication and form-like controls
+
+## Layout (`src/components/layout`)
+
+### Header
+
+- Top navigation shell
+- Reflects current app section
+- Supports admin-aware navigation options
+
+## Views (`src/views`)
+
+### AuthView
+
+- Entry point for voter/admin login
+- Includes support/help interactions
+- Contains special admin access pattern behavior
+
+### VerifyIdentityView
+
+- Live camera preview for biometric check
+- Real-time face detection via TensorFlow model
+- Progress bar tied to face detection events
+- Secure-context and camera-permission error handling
+
+### BallotView
+
+- Candidate cards and selection controls
+- Write-in support
+- Transition to review flow
+
+### AdminDashboardView
+
+- System and election status overview
+- Visual summary metrics and charts
+
+### AdminRegistryView
+
+- Registered voter listing and management tools
+
+### AdminLogsView
+
+- Audit events and activity history
+- Suitable for traceability/compliance demonstrations
+
+## Shared Utilities
+
+### `src/lib/utils.ts`
+
+- `cn` helper for className merging
+- Combines `clsx` and `tailwind-merge`
+
+## Shared Types
+
+### `src/types.ts`
+
+- Core entities such as candidate, voter, logs, and app views
+- Used across views for consistent typing
