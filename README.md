@@ -22,6 +22,14 @@ pnpm dev
 npm run dev
 ```
 
+Run a phone-friendly HTTPS preview for camera access:
+
+```bash
+pnpm run dev:mobile
+```
+
+Use the HTTPS URL that the command prints in your phone browser so `getUserMedia()` can work.
+
 Build for production:
 
 ```bash

@@ -1,6 +1,10 @@
 import * as React from "react";
 import { motion } from "motion/react";
-import { Shield, Scan, Lock, EyeOff, Barcode, ArrowLeft } from "lucide-react";
+import { Shield, Scan } from "lucide-react";
+import * as faceDetection from "@tensorflow-models/face-detection";
+import * as tf from "@tensorflow/tfjs-core";
+import "@tensorflow/tfjs-converter";
+import "@tensorflow/tfjs-backend-webgl";
 import { Button } from "@/src/components/ui/Button";
 
 interface VerifyIdentityViewProps {
@@ -13,64 +17,185 @@ export function VerifyIdentityView({ onVerify, onCancel, isAdmin }: VerifyIdenti
   const [progress, setProgress] = React.useState(0);
   const [isScanning, setIsScanning] = React.useState(false);
   const [cameraActive, setCameraActive] = React.useState(false);
-  const videoRef = React.useRef<HTMLVideoElement | null>(null);
+  const [faceDetected, setFaceDetected] = React.useState(false);
+  const [scanMessage, setScanMessage] = React.useState("Position your face in the frame");
+  const [cameraError, setCameraError] = React.useState<string | null>(null);
   const streamRef = React.useRef<MediaStream | null>(null);
+  const videoRef = React.useRef<HTMLVideoElement | null>(null);
+  const detectorRef = React.useRef<faceDetection.FaceDetector | null>(null);
+  const detectIntervalRef = React.useRef<number | null>(null);
+  const detectBusyRef = React.useRef(false);
 
-  // progress interval
-  React.useEffect(() => {
-    let interval: any;
-    if (isScanning && progress < 100) {
-      interval = setInterval(() => {
-        setProgress((p) => Math.min(100, p + 2.5));
-      }, 50);
+  const stopDetectionLoop = React.useCallback(() => {
+    if (detectIntervalRef.current !== null) {
+      window.clearInterval(detectIntervalRef.current);
+      detectIntervalRef.current = null;
     }
-    return () => clearInterval(interval);
-  }, [isScanning]);
+  }, []);
+
+  const stopCamera = React.useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setCameraActive(false);
+    setFaceDetected(false);
+  }, []);
 
   // When progress reaches 100, finalize verification
   React.useEffect(() => {
     if (isScanning && progress >= 100) {
       // stop scanning animation and camera
       setIsScanning(false);
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop());
-        streamRef.current = null;
-      }
-      setCameraActive(false);
+      stopDetectionLoop();
+      stopCamera();
+      setScanMessage("Face verified");
       setTimeout(onVerify, 800);
     }
-  }, [progress, isScanning, onVerify]);
+  }, [progress, isScanning, onVerify, stopCamera, stopDetectionLoop]);
+
+  React.useEffect(() => {
+    if (!isScanning || !cameraActive || !videoRef.current) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const initDetector = async () => {
+      try {
+        setScanMessage("Loading face detector...");
+        await tf.setBackend("webgl").catch(() => undefined);
+        await tf.ready();
+
+        if (cancelled) {
+          return;
+        }
+
+        if (!detectorRef.current) {
+          detectorRef.current = await faceDetection.createDetector(
+            faceDetection.SupportedModels.MediaPipeFaceDetector,
+            {
+              runtime: "tfjs",
+              modelType: "short",
+              maxFaces: 1,
+            }
+          );
+        }
+
+        setScanMessage("Align your face inside the frame");
+        detectIntervalRef.current = window.setInterval(async () => {
+          if (
+            detectBusyRef.current ||
+            !videoRef.current ||
+            !detectorRef.current ||
+            videoRef.current.readyState < 2
+          ) {
+            return;
+          }
+
+          detectBusyRef.current = true;
+          try {
+            const faces = await detectorRef.current.estimateFaces(videoRef.current);
+            const hasFace = faces.length > 0;
+            setFaceDetected(hasFace);
+            setProgress((prev) => {
+              if (hasFace) {
+                return Math.min(100, prev + 4);
+              }
+              return Math.max(0, prev - 2);
+            });
+            setScanMessage(hasFace ? "Face detected. Hold still..." : "No face detected. Center your face.");
+          } catch (error) {
+            console.error("Face detection failed:", error);
+          } finally {
+            detectBusyRef.current = false;
+          }
+        }, 180);
+      } catch (error) {
+        console.error("Failed to initialize face detector:", error);
+        setCameraError("Unable to initialize face detection on this device/browser.");
+        setIsScanning(false);
+        stopDetectionLoop();
+        stopCamera();
+      }
+    };
+
+    initDetector();
+
+    return () => {
+      cancelled = true;
+      stopDetectionLoop();
+      detectBusyRef.current = false;
+    };
+  }, [cameraActive, isScanning, stopCamera, stopDetectionLoop]);
 
   // Start camera and scanning
   const startScan = async () => {
+    setCameraError(null);
+    setScanMessage("Opening camera...");
+    setFaceDetected(false);
+    setProgress(0);
+    stopDetectionLoop();
+    stopCamera();
+
+    if (typeof window !== 'undefined' && !window.isSecureContext) {
+      setIsScanning(false);
+      setCameraError('Camera access requires HTTPS. Open the secure mobile preview URL instead of the HTTP address.');
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setIsScanning(false);
+      setCameraError('This browser does not support camera access.');
+      return;
+    }
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'user',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      });
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch(() => {});
+        await videoRef.current.play().catch((err) => {
+          console.error("Video play error:", err);
+        });
       }
       setCameraActive(true);
-      setProgress(0);
       setIsScanning(true);
     } catch (err) {
-      console.error('Camera access denied or unavailable', err);
-      // fallback to mock image but still run scanning
-      setCameraActive(false);
-      setProgress(0);
-      setIsScanning(true);
+      console.error('Camera access denied or unavailable:', err);
+      setIsScanning(false);
+      setCameraError('Camera permission was denied or the browser blocked the camera. Open the secure preview URL and allow camera access.');
     }
+  };
+
+  const handleCancel = () => {
+    stopDetectionLoop();
+    stopCamera();
+    setIsScanning(false);
+    setProgress(0);
+    setScanMessage("Position your face in the frame");
+    onCancel();
   };
 
   // Cleanup on unmount
   React.useEffect(() => {
     return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop());
-        streamRef.current = null;
-      }
+      stopDetectionLoop();
+      stopCamera();
+      detectorRef.current?.dispose();
+      detectorRef.current = null;
+      detectBusyRef.current = false;
     };
-  }, []);
+  }, [stopCamera, stopDetectionLoop]);
 
   return (
     <div className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-center p-6">
@@ -91,20 +216,19 @@ export function VerifyIdentityView({ onVerify, onCancel, isAdmin }: VerifyIdenti
 
         {/* Biometric Frame */}
         <div className="relative w-full aspect-square max-w-[400px] rounded-full overflow-hidden border-8 border-white shadow-2xl mb-10 group bg-surface-container-highest">
-          {/* Video Feed (camera) or Mock Video Feed / User Asset */}
-          {cameraActive ? (
-            <video
-              ref={videoRef}
-              className="absolute inset-0 object-cover bg-black"
-              playsInline
-              muted
-            />
-          ) : (
-            <div 
-              className="absolute inset-0 bg-cover bg-center grayscale group-hover:grayscale-0 transition-all duration-1000"
-              style={{ backgroundImage: `url('https://picsum.photos/seed/voter/800/800')` }}
-            />
-          )}
+          {/* Live camera feed */}
+          <video
+            ref={videoRef}
+            className="absolute inset-0 w-full h-full bg-black"
+            style={{
+              objectFit: 'cover',
+              transform: 'scaleX(-1)',
+              opacity: cameraActive ? 1 : 0,
+            }}
+            autoPlay
+            playsInline
+            muted
+          />
 
           {/* Scanner Overlays */}
           <div className="absolute inset-0 bg-primary-container/40 mix-blend-multiply pointer-events-none" />
@@ -134,7 +258,7 @@ export function VerifyIdentityView({ onVerify, onCancel, isAdmin }: VerifyIdenti
           <div className="absolute bottom-12 left-0 right-0 flex justify-center pointer-events-none">
             <div className="bg-primary/80 backdrop-blur-md px-6 py-2 rounded-full border border-white/20">
               <span className="text-white text-[10px] font-bold tracking-widest uppercase">
-                {isScanning ? "Scanning Active" : "Position Your Face In The Frame"}
+                {scanMessage}
               </span>
             </div>
           </div>
@@ -143,7 +267,7 @@ export function VerifyIdentityView({ onVerify, onCancel, isAdmin }: VerifyIdenti
         {/* Progress */}
         <div className="w-full max-w-[320px] space-y-3 mb-10">
           <div className="flex justify-between items-end px-1">
-            <span className="text-xs font-bold text-primary uppercase tracking-wider">{isScanning ? "Scanning..." : "Status Ready"}</span>
+            <span className="text-xs font-bold text-primary uppercase tracking-wider">{faceDetected ? "Face Detected" : "Waiting for Face"}</span>
             <span className="text-xs font-semibold text-on-surface-variant">{Math.round(progress)}%</span>
           </div>
           <div className="h-2 w-full bg-surface-container-highest rounded-full overflow-hidden border border-outline-variant/30">
@@ -167,26 +291,15 @@ export function VerifyIdentityView({ onVerify, onCancel, isAdmin }: VerifyIdenti
           <Button 
             variant="outline" 
             className="h-12 font-bold"
-            onClick={onCancel}
+            onClick={handleCancel}
           >
             Cancel and Return
           </Button>
-        </div>
-
-        {/* Trust Badges */}
-        <div className="mt-16 flex items-center justify-center gap-10 opacity-50 grayscale hover:grayscale-0 transition-all">
-          <div className="flex items-center gap-2">
-            <Lock size={14} className="fill-current" />
-            <span className="text-[10px] font-black uppercase tracking-widest">AES-256 BIT</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Shield size={14} className="fill-current" />
-            <span className="text-[10px] font-black uppercase tracking-widest">Identity Secure</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <EyeOff size={14} className="fill-current" />
-            <span className="text-[10px] font-black uppercase tracking-widest">Zero-Knowledge</span>
-          </div>
+          {cameraError && (
+            <p className="text-sm text-red-600 text-center leading-relaxed">
+              {cameraError}
+            </p>
+          )}
         </div>
       </div>
     </div>
