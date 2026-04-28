@@ -1,0 +1,6 @@
+{
+  "name": "CivicVote",
+  "description": "A high-integrity digital voting platform featuring voter authentication, biometric verification, and administrative controls.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": []
+}
