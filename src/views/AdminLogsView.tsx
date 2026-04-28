@@ -2,6 +2,7 @@ import { AuditLog } from "@/src/types";
 import { Card } from "@/src/components/ui/Card";
 import { Button } from "@/src/components/ui/Button";
 import { Search, Download, ShieldCheck, AlertCircle, Clock } from "lucide-react";
+import { cn } from "@/src/lib/utils";
 
 const LOGS: AuditLog[] = [
   { id: '1', timestamp: '2024-04-28 12:44:12', type: 'BALLOT_CAST', voterId: 'CV-1229', ip: '192.168.1.4', status: 'SUCCESS' },
@@ -86,4 +87,4 @@ export function AdminLogsView() {
   );
 }
 
-import { cn } from "@/src/lib/utils";
+ 

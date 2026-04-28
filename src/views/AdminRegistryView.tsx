@@ -2,6 +2,7 @@ import { Voter } from "@/src/types";
 import { Card } from "@/src/components/ui/Card";
 import { Button } from "@/src/components/ui/Button";
 import { Search, Filter, ShieldCheck, AlertCircle } from "lucide-react";
+import { cn } from "@/src/lib/utils";
 
 const VOTERS: Voter[] = [
   { id: '1', name: 'James Wilson', email: 'j.wilson@mail.gov', registrationDate: '2024-01-12', status: 'Verified', photoUrl: 'https://picsum.photos/seed/v1/100/100' },
@@ -80,4 +81,3 @@ export function AdminRegistryView() {
 }
 
 // Inline utils for this small view
-import { cn } from "@/src/lib/utils";

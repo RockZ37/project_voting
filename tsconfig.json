@@ -15,6 +15,10 @@
     "moduleDetection": "force",
     "allowJs": true,
     "jsx": "react-jsx",
+    "typeRoots": [
+      "./src/types",
+      "./node_modules/@types"
+    ],
     "paths": {
       "@/*": [
         "./*"
@@ -23,4 +27,6 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   }
+  ,
+  "include": ["src"]
 }

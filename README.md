@@ -1,20 +1,56 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Project Voting (CivicVote)
 
-# Run and deploy your AI Studio app
+This repository is a TypeScript + React frontend for a national online voting demo (CivicVote). It provides authentication, identity verification, ballot selection, and admin dashboards for monitoring and auditing. The project uses Vite, Tailwind, Recharts, Lucide icons, and Motion for UI/UX.
 
-This contains everything you need to run your app locally.
+## Quick Start
 
-View your app in AI Studio: https://ai.studio/apps/ce3ba96b-aaf1-498a-8735-571639d654b1
+Prerequisites: Node.js (>=18), pnpm (recommended) or npm/yarn
 
-## Run Locally
+Install dependencies:
 
-**Prerequisites:**  Node.js
+```bash
+pnpm install
+# or
+npm install
+```
+
+Run dev server:
+
+```bash
+pnpm dev
+# or
+npm run dev
+```
+
+Build for production:
+
+```bash
+pnpm build
+```
+
+Type-check (lint):
+
+```bash
+pnpm run lint
+```
+
+Preview production build:
+
+```bash
+pnpm preview
+```
 
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Project Layout
+
+- `src/` — application source
+  - `components/` — shared UI components and layout
+  - `views/` — page-level views (Auth, Verify, Ballot, Admin views)
+  - `lib/` — utilities (e.g., `cn` helper)
+  - `types.ts` — shared TypeScript types
+
+## Contributing
+See `docs/CONTRIBUTING.md` for development workflow and coding guidelines.
+
+## License
+This repository does not include a license file. Add one if you plan to publish the project.

@@ -1,4 +1,4 @@
-import { Shield, Fingerprint, Lock, ArrowRight, HelpCircle, Security } from "lucide-react";
+import { Shield, Fingerprint, Lock, ArrowRight, HelpCircle } from "lucide-react";
 import { Button } from "@/src/components/ui/Button";
 import { Card } from "@/src/components/ui/Card";
 import { Input } from "@/src/components/ui/Input";

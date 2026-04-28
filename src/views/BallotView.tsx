@@ -1,9 +1,10 @@
 import * as React from "react";
 import { motion } from "motion/react";
-import { CheckCircle2, Info, User, Landmark, ShieldCheck, Send, RotateCcw } from "lucide-react";
+import { CheckCircle2, Info, User, Landmark, ShieldCheck, Send, RotateCcw, Lock } from "lucide-react";
 import { Button } from "@/src/components/ui/Button";
 import { Card } from "@/src/components/ui/Card";
 import { Candidate } from "@/src/types";
+import { cn } from "@/src/lib/utils";
 
 interface BallotViewProps {
   onSelect: (candidate: Candidate) => void;

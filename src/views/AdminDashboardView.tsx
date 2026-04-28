@@ -1,8 +1,9 @@
 import * as React from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Users, Vote, Percent, Activity, RefreshCw, PlayCircle, StopCircle, RotateCcw, AlertTriangle, ShieldCheck, History, FaceIcon } from "lucide-react";
+import { Users, Vote, Percent, Activity, RefreshCw, PlayCircle, StopCircle, RotateCcw, AlertTriangle, ShieldCheck, History, Lock } from "lucide-react";
 import { Card } from "@/src/components/ui/Card";
 import { Button } from "@/src/components/ui/Button";
+import { cn } from "@/src/lib/utils";
 
 const DATA = [
   { name: 'Dr. Elena Sterling', votes: 382400, color: '#0051d5' },
