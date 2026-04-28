@@ -25,7 +25,8 @@ export default function App() {
   const handleLogin = (admin: boolean = false) => {
     setIsAdmin(admin);
     if (admin) {
-      setCurrentView(AppView.ADMIN_DASHBOARD);
+      // Admins go through facial verification first
+      setCurrentView(AppView.VERIFY);
     } else {
       setCurrentView(AppView.VERIFY);
     }
@@ -38,8 +39,9 @@ export default function App() {
       case AppView.VERIFY:
         return (
           <VerifyIdentityView 
-            onVerify={() => setCurrentView(AppView.BALLOT)} 
-            onCancel={() => setCurrentView(AppView.AUTH)} 
+            onVerify={() => setCurrentView(isAdmin ? AppView.ADMIN_DASHBOARD : AppView.BALLOT)} 
+            onCancel={() => setCurrentView(AppView.AUTH)}
+            isAdmin={isAdmin}
           />
         );
       case AppView.BALLOT:
@@ -219,7 +221,7 @@ export default function App() {
         <div className="w-full max-w-7xl mx-auto flex justify-between items-center text-[9px] font-black uppercase tracking-[0.2em] text-outline">
           <div className="flex gap-4">
             <span>© 2026 CivicVote National Commission</span>
-            <span>AES-XM End-to-End Ready</span>
+              <span>Version 1.0.0</span>
           </div>
           <div className="flex items-center gap-1.5 text-secondary">
              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />

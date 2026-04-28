@@ -6,9 +6,10 @@ import { Button } from "@/src/components/ui/Button";
 interface VerifyIdentityViewProps {
   onVerify: () => void;
   onCancel: () => void;
+  isAdmin?: boolean;
 }
 
-export function VerifyIdentityView({ onVerify, onCancel }: VerifyIdentityViewProps) {
+export function VerifyIdentityView({ onVerify, onCancel, isAdmin }: VerifyIdentityViewProps) {
   const [progress, setProgress] = React.useState(0);
   const [isScanning, setIsScanning] = React.useState(false);
   const [cameraActive, setCameraActive] = React.useState(false);
@@ -77,11 +78,14 @@ export function VerifyIdentityView({ onVerify, onCancel }: VerifyIdentityViewPro
         <div className="text-center mb-10 space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-secondary-fixed text-on-secondary-fixed-variant rounded-full mb-2">
             <Shield className="w-4 h-4 fill-current" />
-            <span className="text-[10px] font-bold tracking-[0.1em] uppercase">Encrypted Identity Verification</span>
+            <span className="text-[10px] font-bold tracking-[0.1em] uppercase">{isAdmin ? "Admin Authorization" : "Encrypted Identity Verification"}</span>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-primary">Secure Voter Identity Check</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-primary">{isAdmin ? "Secure Administrator Verification" : "Secure Voter Identity Check"}</h1>
           <p className="text-on-surface-variant max-w-sm mx-auto leading-relaxed">
-            To maintain the integrity of this election, please complete a biometric facial scan to confirm your voter credentials.
+            {isAdmin 
+              ? "Complete biometric authentication to access the election administration dashboard."
+              : "To maintain the integrity of this election, please complete a biometric facial scan to confirm your voter credentials."
+            }
           </p>
         </div>
 

@@ -11,6 +11,19 @@ interface AuthViewProps {
 
 export function AuthView({ onLogin }: AuthViewProps) {
   const [showAssistance, setShowAssistance] = React.useState(false);
+  const [voterId, setVoterId] = React.useState("");
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      const trimmed = voterId.trim().toUpperCase();
+      // Check for admin codes
+      if (trimmed.startsWith("ADMIN-") || trimmed === "ELECTION_OFFICER") {
+        onLogin(true); // Admin login
+      } else if (trimmed) {
+        onLogin(false); // Regular voter login
+      }
+    }
+  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-64px)] p-6">
@@ -28,7 +41,10 @@ export function AuthView({ onLogin }: AuthViewProps) {
               <label className="text-sm font-semibold text-on-surface-variant block">Voter ID or Registered Email</label>
               <Input 
                 placeholder="e.g. 1234-5678-90" 
-                icon={<Fingerprint size={20} />} 
+                icon={<Fingerprint size={20} />}
+                value={voterId}
+                onChange={(e) => setVoterId(e.currentTarget.value)}
+                onKeyDown={handleKeyDown}
               />
             </div>
 
@@ -36,7 +52,14 @@ export function AuthView({ onLogin }: AuthViewProps) {
               <Button 
                 className="w-full gap-2 h-14" 
                 size="xl"
-                onClick={() => onLogin(false)}
+                onClick={() => {
+                  const trimmed = voterId.trim().toUpperCase();
+                  if (trimmed.startsWith("ADMIN-") || trimmed === "ELECTION_OFFICER") {
+                    onLogin(true);
+                  } else if (voterId.trim()) {
+                    onLogin(false);
+                  }
+                }}
               >
                 Login to Verify Identity
                 <ArrowRight size={20} />
@@ -77,15 +100,7 @@ export function AuthView({ onLogin }: AuthViewProps) {
           </div>
         </div>
         
-        {/* Hidden Admin Shortcut */}
-        <div className="flex justify-center">
-            <button 
-                className="text-[10px] text-outline hover:text-primary transition-colors uppercase tracking-widest font-bold"
-                onClick={() => onLogin(true)}
-            >
-                ADMIN ACCESS ONLY
-            </button>
-        </div>
+
       </div>
 
       {/* Support Modal */}
