@@ -218,7 +218,7 @@ export default function App() {
       <footer className="fixed bottom-0 w-full h-8 bg-white/50 backdrop-blur-sm border-t border-outline-variant/30 hidden md:flex items-center px-6">
         <div className="w-full max-w-7xl mx-auto flex justify-between items-center text-[9px] font-black uppercase tracking-[0.2em] text-outline">
           <div className="flex gap-4">
-            <span>© 2024 CivicVote National Commission</span>
+            <span>© 2026 CivicVote National Commission</span>
             <span>AES-XM End-to-End Ready</span>
           </div>
           <div className="flex items-center gap-1.5 text-secondary">

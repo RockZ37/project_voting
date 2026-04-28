@@ -18,7 +18,7 @@ export function AuthView({ onLogin }: AuthViewProps) {
         <div className="text-center space-y-4">
           <h1 className="text-4xl font-bold tracking-tight text-primary">Voter Authentication</h1>
           <p className="text-on-surface-variant max-w-[320px] mx-auto text-center leading-relaxed">
-            Please provide your credentials to access the National Online Voting System.
+            Please provide your Voter ID to access the National Online Voting System.
           </p>
         </div>
 
@@ -29,15 +29,6 @@ export function AuthView({ onLogin }: AuthViewProps) {
               <Input 
                 placeholder="e.g. 1234-5678-90" 
                 icon={<Fingerprint size={20} />} 
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-on-surface-variant">Password</label>
-              <Input 
-                type="password"
-                placeholder="••••••••••••" 
-                icon={<Lock size={20} />} 
               />
             </div>
 
@@ -113,16 +104,9 @@ export function AuthView({ onLogin }: AuthViewProps) {
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <h3 className="font-bold text-on-surface">Password Reset</h3>
-                <p className="text-sm text-on-surface-variant">
-                  To reset your password, use your Voter ID to submit a reset request. Instructions will be sent to your registered email.
-                </p>
-              </div>
-
-              <div className="space-y-2">
                 <h3 className="font-bold text-on-surface">Contact Support</h3>
                 <p className="text-sm text-on-surface-variant">
-                  For additional assistance, contact your election authority:
+                  For assistance with voter ID verification, contact your election authority:
                 </p>
                 <div className="bg-surface-container-low p-3 rounded-lg space-y-1">
                   <p className="text-sm font-mono text-primary">📧 support@civicvote.gov</p>
