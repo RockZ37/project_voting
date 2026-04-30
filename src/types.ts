@@ -51,7 +51,7 @@ export interface NotificationItem {
   id: string;
   title: string;
   message: string;
-  timestamp: string;
+  createdAt: string;
   read: boolean;
   tone: 'info' | 'success' | 'warning';
 }

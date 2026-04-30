@@ -26,19 +26,32 @@ export default function App() {
   const [indexNumber, setIndexNumber] = React.useState<string>("");
   const [selectedCandidate, setSelectedCandidate] = React.useState<Candidate | null>(null);
   const [notifications, setNotifications] = React.useState<NotificationItem[]>([]);
+  const notificationTimersRef = React.useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
-  const addNotification = React.useCallback((notification: Omit<NotificationItem, "id" | "timestamp" | "read">) => {
-    const timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  React.useEffect(() => {
+    return () => {
+      Object.values(notificationTimersRef.current).forEach((timerId) => clearTimeout(timerId));
+    };
+  }, []);
+
+  const addNotification = React.useCallback((notification: Omit<NotificationItem, "id" | "createdAt" | "read">) => {
+    const createdAt = new Date().toISOString();
+    const id = crypto.randomUUID();
 
     setNotifications((current) => [
       {
-        id: crypto.randomUUID(),
-        timestamp,
+        id,
+        createdAt,
         read: false,
         ...notification,
       },
       ...current,
     ]);
+
+    notificationTimersRef.current[id] = setTimeout(() => {
+      setNotifications((current) => current.filter((item) => item.id !== id));
+      delete notificationTimersRef.current[id];
+    }, 12000);
   }, []);
 
   const markNotificationsRead = React.useCallback(() => {
@@ -303,10 +316,6 @@ export default function App() {
           <div className="flex gap-4">
             <span>© 2026 CivicVote National Commission</span>
               <span>Version 1.0.0</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-secondary">
-             <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-             Secure Node Connection: Active
           </div>
         </div>
       </footer>

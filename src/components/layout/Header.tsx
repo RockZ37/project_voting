@@ -23,7 +23,35 @@ export function Header({
   const isAnonymous = currentView === AppView.AUTH || currentView === AppView.VERIFY;
   const [showProfile, setShowProfile] = React.useState(false);
   const [showNotifications, setShowNotifications] = React.useState(false);
+  const [now, setNow] = React.useState(() => Date.now());
   const unreadCount = notifications.filter((notification) => !notification.read).length;
+
+  React.useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setNow(Date.now());
+    }, 30000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  const formatRelativeTime = React.useCallback(
+    (createdAt: string) => {
+      const elapsedSeconds = Math.max(0, Math.floor((now - new Date(createdAt).getTime()) / 1000));
+
+      if (elapsedSeconds < 60) return "Just now";
+      if (elapsedSeconds < 3600) {
+        const minutes = Math.floor(elapsedSeconds / 60);
+        return `${minutes}m ago`;
+      }
+
+      const hours = Math.floor(elapsedSeconds / 3600);
+      if (hours < 24) return `${hours}h ago`;
+
+      const days = Math.floor(elapsedSeconds / 86400);
+      return `${days}d ago`;
+    },
+    [now],
+  );
 
   return (
     <header className="bg-white border-b border-outline-variant fixed top-0 w-full z-50 h-16">
@@ -130,7 +158,7 @@ export function Header({
                                 <div className="flex items-center justify-between gap-4">
                                   <p className="font-bold text-on-surface text-sm">{notification.title}</p>
                                   <span className="text-[10px] font-semibold uppercase tracking-widest text-on-surface-variant whitespace-nowrap">
-                                    {notification.timestamp}
+                                    {formatRelativeTime(notification.createdAt)}
                                   </span>
                                 </div>
                                 <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">{notification.message}</p>
