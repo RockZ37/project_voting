@@ -50,12 +50,12 @@ export function BallotView({ student, onSelect, onReview }: BallotViewProps) {
   const selectedCandidate = CANDIDATES.find(c => c.id === selectedId);
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12 pb-32">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 pb-36">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-10">
         {/* Sidebar */}
-        <aside className="lg:col-span-3 space-y-8">
-          <Card className="p-6 bg-surface-container-low border-outline-variant/50">
-            <h2 className="text-xl font-bold mb-4">Voter Identity</h2>
+        <aside className="lg:col-span-3 space-y-6 sm:space-y-8">
+          <Card className="p-4 sm:p-6 bg-surface-container-low border-outline-variant/50">
+            <h2 className="text-lg sm:text-xl font-bold mb-4">Voter Identity</h2>
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <span className="px-2 py-0.5 bg-secondary text-on-secondary rounded-full text-[10px] font-bold uppercase tracking-wider">Verified Voter</span>
@@ -82,7 +82,7 @@ export function BallotView({ student, onSelect, onReview }: BallotViewProps) {
             </div>
           </Card>
 
-          <Card className="p-6 bg-primary-container text-white border-primary shadow-lg">
+          <Card className="p-4 sm:p-6 bg-primary-container text-white border-primary shadow-lg">
             <h3 className="text-xs font-black uppercase tracking-widest mb-4 opacity-70">Voting Progress</h3>
             <div className="w-full bg-on-primary-container/20 h-1.5 rounded-full mb-3">
               <div className="bg-white h-full w-1/2 rounded-full" />
@@ -94,24 +94,24 @@ export function BallotView({ student, onSelect, onReview }: BallotViewProps) {
         {/* Main Ballot */}
         <div className="lg:col-span-9 space-y-8">
           <header className="space-y-2">
-            <h1 className="text-3xl font-black tracking-tight text-on-surface">General Election: Presidential</h1>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-on-surface">General Election: Presidential</h1>
             <p className="text-on-surface-variant text-base leading-relaxed">
               Please select one candidate from the list below. You can review your choice before final submission.
             </p>
           </header>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {CANDIDATES.map((candidate) => (
               <Card 
                 key={candidate.id}
                 className={cn(
-                  "p-8 transition-all cursor-pointer group relative hover:shadow-lg",
+                  "p-5 sm:p-8 transition-all cursor-pointer group relative hover:shadow-lg",
                   selectedId === candidate.id ? "border-3 border-secondary bg-surface-container-low shadow-md scale-[1.01]" : "hover:border-outline"
                 )}
                 onClick={() => handleSelect(candidate)}
               >
-                <div className="flex gap-6">
-                  <div className="w-24 h-24 rounded-lg overflow-hidden border border-outline-variant/30 shrink-0">
+                <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+                  <div className="w-full h-44 sm:w-24 sm:h-24 rounded-lg overflow-hidden border border-outline-variant/30 shrink-0">
                     <img 
                         src={candidate.photoUrl} 
                         alt={candidate.name} 
@@ -128,7 +128,7 @@ export function BallotView({ student, onSelect, onReview }: BallotViewProps) {
                         )}>
                             {candidate.party}
                         </p>
-                        <h3 className="text-xl font-bold text-on-surface leading-tight">{candidate.name}</h3>
+                        <h3 className="text-lg sm:text-xl font-bold text-on-surface leading-tight">{candidate.name}</h3>
                       </div>
                       <div className={cn(
                         "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors",
@@ -141,7 +141,7 @@ export function BallotView({ student, onSelect, onReview }: BallotViewProps) {
                   </div>
                 </div>
 
-                <div className="mt-8 pt-6 border-t border-outline-variant/20 flex justify-between items-center">
+                <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-outline-variant/20 flex justify-between items-center">
                   <button className="flex items-center gap-2 text-secondary font-bold text-[10px] uppercase tracking-widest hover:underline">
                     <Info size={14} />
                     View Platform
@@ -157,7 +157,7 @@ export function BallotView({ student, onSelect, onReview }: BallotViewProps) {
             ))}
 
             {/* Write-in Option */}
-            <Card className="p-8 border-dashed border-outline-variant bg-surface-container-lowest/50 hover:bg-white transition-all cursor-pointer flex flex-col items-center justify-center text-center space-y-4">
+            <Card className="p-5 sm:p-8 border-dashed border-outline-variant bg-surface-container-lowest/50 hover:bg-white transition-all cursor-pointer flex flex-col items-center justify-center text-center space-y-4">
               <div className="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center text-outline">
                 <RotateCcw size={32} />
               </div>
@@ -189,9 +189,9 @@ export function BallotView({ student, onSelect, onReview }: BallotViewProps) {
       <motion.div 
         initial={{ y: 100 }}
         animate={{ y: 0 }}
-        className="fixed bottom-0 left-0 w-full bg-white border-t border-outline-variant/50 p-6 shadow-[0_-8px_24px_rgba(0,0,0,0.05)] z-40"
+        className="fixed bottom-0 left-0 w-full bg-white border-t border-outline-variant/50 p-4 sm:p-6 shadow-[0_-8px_24px_rgba(0,0,0,0.05)] z-40"
       >
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6">
           <div className="hidden md:flex items-center gap-4">
             <ShieldCheck className="w-8 h-8 text-secondary" />
             <div className="space-y-0.5">
@@ -205,7 +205,7 @@ export function BallotView({ student, onSelect, onReview }: BallotViewProps) {
           <div className="flex flex-col items-center w-full md:w-auto">
             <Button 
               size="xl" 
-              className="w-full md:w-80 h-16 group relative"
+              className="w-full md:w-80 h-14 sm:h-16 group relative"
               disabled={!selectedId}
               onClick={onReview}
             >

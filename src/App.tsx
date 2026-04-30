@@ -56,7 +56,11 @@ export default function App() {
         return verifiedStudent ? (
           <VerificationConfirmView
             student={verifiedStudent}
-            onConfirm={() => setCurrentView(AppView.BALLOT)}
+            onConfirm={() => {
+              if (verifiedStudent.status === "Active") {
+                setCurrentView(AppView.BALLOT);
+              }
+            }}
             onCancel={() => {
               setVerifiedStudent(null);
               setCurrentView(AppView.AUTH);
