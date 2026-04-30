@@ -1,16 +1,15 @@
 import * as React from "react";
-import { motion } from "motion/react";
-import { CheckCircle2, Info, Landmark, ShieldCheck, Send, RotateCcw, Lock } from "lucide-react";
+import { CheckCircle2, Info, Landmark, RotateCcw } from "lucide-react";
 import { Button } from "@/src/components/ui/Button";
 import { Card } from "@/src/components/ui/Card";
 import { Candidate, Student } from "@/src/types";
 import { cn } from "@/src/lib/utils";
 import { BallotSidebar } from "@/src/components/layout/BallotSidebar";
+import { CandidateReviewModal } from "@/src/components/CandidateReviewModal";
 
 interface BallotViewProps {
   student?: Student | null;
   onSelect: (candidate: Candidate) => void;
-  onReview: () => void;
 }
 
 const CANDIDATES: Candidate[] = [
@@ -40,12 +39,21 @@ const CANDIDATES: Candidate[] = [
   }
 ];
 
-export function BallotView({ student, onSelect, onReview }: BallotViewProps) {
+export function BallotView({ student, onSelect }: BallotViewProps) {
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const [modalOpen, setModalOpen] = React.useState(false);
+  const [modalCandidate, setModalCandidate] = React.useState<Candidate | null>(null);
 
   const handleSelect = (candidate: Candidate) => {
+    setModalCandidate(candidate);
+    setModalOpen(true);
+  };
+
+  const handleConfirmSelection = (candidate: Candidate) => {
     setSelectedId(candidate.id);
     onSelect(candidate);
+    setModalOpen(false);
+    setModalCandidate(null);
   };
 
   const selectedCandidate = CANDIDATES.find(c => c.id === selectedId);
@@ -54,10 +62,7 @@ export function BallotView({ student, onSelect, onReview }: BallotViewProps) {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 pb-36">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-10 items-start">
         <aside className="lg:col-span-3 order-first">
-          <BallotSidebar
-            onReview={onReview}
-            canReview={Boolean(selectedId)}
-          />
+          <BallotSidebar />
         </aside>
 
         {/* Main Ballot */}
@@ -151,41 +156,15 @@ export function BallotView({ student, onSelect, onReview }: BallotViewProps) {
               </div>
             </div>
           </Card>
+          {/* Candidate review modal */}
+          <CandidateReviewModal
+            candidate={modalCandidate}
+            open={modalOpen}
+            onClose={() => { setModalOpen(false); setModalCandidate(null); }}
+            onConfirm={handleConfirmSelection}
+          />
         </div>
       </div>
-
-      {/* Sticky Bottom Bar */}
-      <motion.div 
-        initial={{ y: 100 }}
-        animate={{ y: 0 }}
-        className="fixed bottom-0 left-0 w-full bg-white border-t border-outline-variant/50 p-4 sm:p-6 shadow-[0_-8px_24px_rgba(0,0,0,0.05)] z-40"
-      >
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6">
-          <div className="hidden md:flex items-center gap-4">
-            <ShieldCheck className="w-8 h-8 text-secondary" />
-            <div className="space-y-0.5">
-              <p className="text-[10px] font-black text-outline uppercase tracking-widest">Current Selection</p>
-              <p className="text-lg font-bold text-primary">
-                {selectedCandidate ? `${selectedCandidate.name} (${selectedCandidate.party})` : "No Selection Made"}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-col items-center w-full md:w-auto">
-            <Button 
-              size="xl" 
-              className="w-full md:w-80 h-14 sm:h-16 group relative"
-              disabled={!selectedId}
-              onClick={onReview}
-            >
-              <span className="relative z-10 flex items-center justify-center gap-2">
-                Continue to Review
-                <Send size={18} />
-              </span>
-            </Button>
-          </div>
-        </div>
-      </motion.div>
     </div>
   );
 }

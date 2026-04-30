@@ -71,8 +71,10 @@ export default function App() {
         return (
           <BallotView 
             student={verifiedStudent}
-            onSelect={setSelectedCandidate} 
-            onReview={() => setCurrentView(AppView.REVIEW)}
+            onSelect={(candidate) => {
+              setSelectedCandidate(candidate);
+              setCurrentView(AppView.REVIEW);
+            }}
           />
         );
       case AppView.REVIEW:

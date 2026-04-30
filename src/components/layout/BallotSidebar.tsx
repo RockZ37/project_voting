@@ -1,13 +1,7 @@
-import { Vote, ClipboardCheck } from "lucide-react";
-import { Button } from "@/src/components/ui/Button";
+import { Vote } from "lucide-react";
 import { Card } from "@/src/components/ui/Card";
 
-interface BallotSidebarProps {
-  onReview: () => void;
-  canReview: boolean;
-}
-
-export function BallotSidebar({ onReview, canReview }: BallotSidebarProps) {
+export function BallotSidebar() {
   return (
     <Card className="p-4 sm:p-6 bg-surface-container-low border-outline-variant/50 lg:sticky lg:top-20">
       <h2 className="text-lg font-bold mb-4">Navigation</h2>
@@ -17,17 +11,6 @@ export function BallotSidebar({ onReview, canReview }: BallotSidebarProps) {
           <Vote size={14} />
           <span className="text-sm font-bold">Ballot</span>
         </div>
-
-        <Button
-          variant="outline"
-          size="sm"
-          className="shrink-0 justify-start gap-2 lg:w-full"
-          onClick={onReview}
-          disabled={!canReview}
-        >
-          <ClipboardCheck size={14} />
-          Review
-        </Button>
       </div>
     </Card>
   );
