@@ -1,6 +1,6 @@
 import * as React from "react";
 import { motion } from "motion/react";
-import { CheckCircle2, Info, User, Landmark, ShieldCheck, Send, RotateCcw, Lock } from "lucide-react";
+import { CheckCircle2, Info, Landmark, ShieldCheck, Send, RotateCcw, Lock, Eye, Vote, ClipboardCheck } from "lucide-react";
 import { Button } from "@/src/components/ui/Button";
 import { Card } from "@/src/components/ui/Card";
 import { Candidate, Student } from "@/src/types";
@@ -10,6 +10,7 @@ interface BallotViewProps {
   student?: Student | null;
   onSelect: (candidate: Candidate) => void;
   onReview: () => void;
+  onGoIdentityCheck: () => void;
 }
 
 const CANDIDATES: Candidate[] = [
@@ -39,7 +40,7 @@ const CANDIDATES: Candidate[] = [
   }
 ];
 
-export function BallotView({ student, onSelect, onReview }: BallotViewProps) {
+export function BallotView({ student, onSelect, onReview, onGoIdentityCheck }: BallotViewProps) {
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
 
   const handleSelect = (candidate: Candidate) => {
@@ -51,44 +52,53 @@ export function BallotView({ student, onSelect, onReview }: BallotViewProps) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 pb-36">
+      <Card className="lg:hidden p-3 mb-4 bg-surface-container-low border-outline-variant/50">
+        <div className="flex gap-2 overflow-x-auto">
+          <Button variant="outline" size="sm" className="shrink-0 gap-2" onClick={onGoIdentityCheck}>
+            <Eye size={14} />
+            Identity Check
+          </Button>
+          <Button variant="primary" size="sm" className="shrink-0 gap-2" disabled>
+            <Vote size={14} />
+            Ballot
+          </Button>
+          <Button variant="outline" size="sm" className="shrink-0 gap-2" onClick={onReview} disabled={!selectedId}>
+            <ClipboardCheck size={14} />
+            Review
+          </Button>
+        </div>
+      </Card>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-10">
         {/* Sidebar */}
         <aside className="lg:col-span-3 space-y-6 sm:space-y-8">
-          <Card className="p-4 sm:p-6 bg-surface-container-low border-outline-variant/50">
-            <h2 className="text-lg sm:text-xl font-bold mb-4">Voter Identity</h2>
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 bg-secondary text-on-secondary rounded-full text-[10px] font-bold uppercase tracking-wider">Verified Voter</span>
-                <ShieldCheck className="w-4 h-4 text-secondary fill-secondary" />
+          <Card className="hidden lg:block p-4 sm:p-6 bg-surface-container-low border-outline-variant/50">
+            <h2 className="text-lg font-bold mb-4">Navigation</h2>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={onGoIdentityCheck}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg border border-outline-variant/40 text-on-surface hover:bg-white transition-colors"
+              >
+                <Eye size={16} className="text-secondary" />
+                <span className="text-sm font-bold">Identity Check</span>
+              </button>
+              <div className="w-full flex items-center gap-3 px-3 py-2 rounded-lg border border-secondary bg-secondary/10 text-secondary">
+                <Vote size={16} />
+                <span className="text-sm font-bold">Ballot</span>
               </div>
-              <div>
-                <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-1">Name</p>
-                <p className="font-bold text-sm">{student?.name || "N/A"}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-1">HTU Index Number</p>
-                <p className="font-bold font-mono text-sm">{student?.id || "N/A"}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-1">Department</p>
-                <p className="font-bold text-sm">{student?.department || "N/A"}</p>
-              </div>
-              <div className="pt-2">
-                <div className="flex items-center gap-2 text-secondary font-bold text-[11px] uppercase tracking-wider">
-                  <Lock size={12} className="fill-current" />
-                  End-to-End Encrypted
-                </div>
-              </div>
+              <button
+                type="button"
+                onClick={onReview}
+                disabled={!selectedId}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg border border-outline-variant/40 text-on-surface hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ClipboardCheck size={16} className="text-secondary" />
+                <span className="text-sm font-bold">Review</span>
+              </button>
             </div>
           </Card>
 
-          <Card className="p-4 sm:p-6 bg-primary-container text-white border-primary shadow-lg">
-            <h3 className="text-xs font-black uppercase tracking-widest mb-4 opacity-70">Voting Progress</h3>
-            <div className="w-full bg-on-primary-container/20 h-1.5 rounded-full mb-3">
-              <div className="bg-white h-full w-1/2 rounded-full" />
-            </div>
-            <p className="text-xs font-bold text-on-primary-container">Step 2 of 4: Candidate Selection</p>
-          </Card>
         </aside>
 
         {/* Main Ballot */}

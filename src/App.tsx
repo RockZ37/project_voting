@@ -72,7 +72,8 @@ export default function App() {
           <BallotView 
             student={verifiedStudent}
             onSelect={setSelectedCandidate} 
-            onReview={() => setCurrentView(AppView.REVIEW)} 
+            onReview={() => setCurrentView(AppView.REVIEW)}
+            onGoIdentityCheck={() => setCurrentView(AppView.VERIFY_CONFIRM)}
           />
         );
       case AppView.REVIEW:
@@ -227,7 +228,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-surface selection:bg-secondary/20 transition-colors duration-500">
-      <Header currentView={currentView} setView={setCurrentView} isAdmin={isAdmin} />
+      <Header currentView={currentView} setView={setCurrentView} isAdmin={isAdmin} student={verifiedStudent} />
       <main className="pt-16 pb-20">
         <AnimatePresence mode="wait">
           <motion.div

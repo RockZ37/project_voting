@@ -28,6 +28,7 @@ export function VerifyIdentityView({ onVerify, onVerifyWithStudent, onCancel, is
   const detectorRef = React.useRef<faceDetection.FaceDetector | null>(null);
   const detectIntervalRef = React.useRef<number | null>(null);
   const detectBusyRef = React.useRef(false);
+  const autoStartRef = React.useRef(false);
 
   const stopDetectionLoop = React.useCallback(() => {
     if (detectIntervalRef.current !== null) {
@@ -158,7 +159,7 @@ export function VerifyIdentityView({ onVerify, onVerifyWithStudent, onCancel, is
   }, [cameraActive, isScanning, stopCamera, stopDetectionLoop]);
 
   // Start camera and scanning
-  const startScan = async () => {
+  const startScan = React.useCallback(async () => {
     setCameraError(null);
     setScanMessage("Opening camera...");
     setFaceDetected(false);
@@ -200,7 +201,14 @@ export function VerifyIdentityView({ onVerify, onVerifyWithStudent, onCancel, is
       setIsScanning(false);
       setCameraError('Camera permission was denied or the browser blocked the camera. Open the secure preview URL and allow camera access.');
     }
-  };
+  }, [stopCamera, stopDetectionLoop]);
+
+  React.useEffect(() => {
+    if (!autoStartRef.current) {
+      autoStartRef.current = true;
+      startScan();
+    }
+  }, [startScan]);
 
   const handleCancel = () => {
     stopDetectionLoop();
@@ -311,7 +319,7 @@ export function VerifyIdentityView({ onVerify, onVerifyWithStudent, onCancel, is
             disabled={isScanning}
           >
             <Scan size={20} />
-            {isScanning ? "Verifying..." : "Scan Face"}
+            {isScanning ? "Verifying..." : "Re-Scan Face"}
           </Button>
           <Button 
             variant="outline" 
