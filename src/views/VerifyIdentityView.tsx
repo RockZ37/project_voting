@@ -99,15 +99,20 @@ export function VerifyIdentityView({ onVerify, onCancel, isAdmin }: VerifyIdenti
           detectBusyRef.current = true;
           try {
             const faces = await detectorRef.current.estimateFaces(videoRef.current);
-            const hasFace = faces.length > 0;
-            setFaceDetected(hasFace);
+            const faceCount = faces.length;
+            const hasSingleFace = faceCount === 1;
+            setFaceDetected(hasSingleFace);
             setProgress((prev) => {
-              if (hasFace) {
+              if (hasSingleFace) {
                 return Math.min(100, prev + 4);
               }
               return Math.max(0, prev - 2);
             });
-            setScanMessage(hasFace ? "Face detected. Hold still..." : "No face detected. Center your face.");
+            if (faceCount > 1) {
+              setScanMessage("Multiple faces detected. Only one face is allowed in the frame.");
+            } else {
+              setScanMessage(hasSingleFace ? "Face detected. Hold still..." : "No face detected. Center your face.");
+            }
           } catch (error) {
             console.error("Face detection failed:", error);
           } finally {

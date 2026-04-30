@@ -11,15 +11,30 @@ interface AuthViewProps {
 
 export function AuthView({ onLogin }: AuthViewProps) {
   const [showAssistance, setShowAssistance] = React.useState(false);
-  const [voterId, setVoterId] = React.useState("");
+  const [indexNumber, setIndexNumber] = React.useState("");
+  const [error, setError] = React.useState("");
+
+  const validateIndexNumber = (value: string): boolean => {
+    const trimmed = value.trim();
+    // Check for admin codes (allow without validation)
+    if (trimmed.startsWith("ADMIN-") || trimmed === "ELECTION_OFFICER") {
+      return true;
+    }
+    // Require exactly 10 digits
+    if (!/^\d{10}$/.test(trimmed)) {
+      setError("HTU index number must be exactly 10 digits (e.g., 0323080083)");
+      return false;
+    }
+    setError("");
+    return true;
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      const trimmed = voterId.trim().toUpperCase();
-      // Check for admin codes
+      const trimmed = indexNumber.trim().toUpperCase();
       if (trimmed.startsWith("ADMIN-") || trimmed === "ELECTION_OFFICER") {
         onLogin(true); // Admin login
-      } else if (trimmed) {
+      } else if (validateIndexNumber(indexNumber)) {
         onLogin(false); // Regular voter login
       }
     }
@@ -31,32 +46,36 @@ export function AuthView({ onLogin }: AuthViewProps) {
         <div className="text-center space-y-2 sm:space-y-4">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-primary">Voter Authentication</h1>
           <p className="text-sm sm:text-base text-on-surface-variant max-w-[320px] mx-auto text-center leading-relaxed">
-            Please provide your Voter ID to access the National Online Voting System.
+            Please provide your HTU index number to access the voting system.
           </p>
         </div>
 
         <Card className="p-6 sm:p-8 md:p-12 space-y-6 sm:space-y-8">
           <div className="space-y-6">
             <div className="space-y-2">
-              <label className="text-xs sm:text-sm font-semibold text-on-surface-variant block">Voter ID or Registered Email</label>
+              <label className="text-xs sm:text-sm font-semibold text-on-surface-variant block">HTU Index Number</label>
               <Input 
-                placeholder="e.g. 1234-5678-90" 
+                placeholder="e.g. 0323080083" 
                 icon={<Fingerprint size={20} />}
-                value={voterId}
-                onChange={(e) => setVoterId(e.currentTarget.value)}
+                value={indexNumber}
+                onChange={(e) => setIndexNumber(e.currentTarget.value)}
                 onKeyDown={handleKeyDown}
               />
+              {error && (
+                <p className="text-xs text-error font-semibold mt-1">{error}</p>
+              )}
             </div>
 
             <div className="pt-2">
               <Button 
                 className="w-full gap-2 h-12 sm:h-14" 
                 size="xl"
+                disabled={indexNumber.trim().length === 0}
                 onClick={() => {
-                  const trimmed = voterId.trim().toUpperCase();
+                  const trimmed = indexNumber.trim().toUpperCase();
                   if (trimmed.startsWith("ADMIN-") || trimmed === "ELECTION_OFFICER") {
                     onLogin(true);
-                  } else if (voterId.trim()) {
+                  } else if (validateIndexNumber(indexNumber)) {
                     onLogin(false);
                   }
                 }}
@@ -90,14 +109,14 @@ export function AuthView({ onLogin }: AuthViewProps) {
             <Lock className="text-secondary fill-secondary/10 shrink-0 w-[18px] h-[18px] sm:w-5 sm:h-5" />
             <div>
               <p className="text-xs sm:text-sm font-bold text-primary">Biometric Ready</p>
-              <p className="text-xs text-on-surface-variant leading-tight">2FA and biometric verification required in the next step.</p>
+              <p className="text-xs text-on-surface-variant leading-tight">Your face must match the registered HTU record in the next step.</p>
             </div>
           </div>
           <div className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-surface-container-low rounded-lg border border-outline-variant/30">
             <Shield className="text-secondary fill-secondary/10 shrink-0 w-[18px] h-[18px] sm:w-5 sm:h-5" />
             <div>
               <p className="text-xs sm:text-sm font-bold text-primary">Data Privacy</p>
-              <p className="text-xs text-on-surface-variant leading-tight">Your credentials are never stored in plain text.</p>
+              <p className="text-xs text-on-surface-variant leading-tight">Your index number is used only to start verification in this demo flow.</p>
             </div>
           </div>
         </div>
