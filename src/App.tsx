@@ -73,7 +73,6 @@ export default function App() {
             student={verifiedStudent}
             onSelect={setSelectedCandidate} 
             onReview={() => setCurrentView(AppView.REVIEW)}
-            onGoIdentityCheck={() => setCurrentView(AppView.VERIFY_CONFIRM)}
           />
         );
       case AppView.REVIEW:

@@ -11,7 +11,6 @@ interface BallotViewProps {
   student?: Student | null;
   onSelect: (candidate: Candidate) => void;
   onReview: () => void;
-  onGoIdentityCheck: () => void;
 }
 
 const CANDIDATES: Candidate[] = [
@@ -41,7 +40,7 @@ const CANDIDATES: Candidate[] = [
   }
 ];
 
-export function BallotView({ student, onSelect, onReview, onGoIdentityCheck }: BallotViewProps) {
+export function BallotView({ student, onSelect, onReview }: BallotViewProps) {
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
 
   const handleSelect = (candidate: Candidate) => {
@@ -56,7 +55,6 @@ export function BallotView({ student, onSelect, onReview, onGoIdentityCheck }: B
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-10 items-start">
         <aside className="lg:col-span-3 order-first">
           <BallotSidebar
-            onGoIdentityCheck={onGoIdentityCheck}
             onReview={onReview}
             canReview={Boolean(selectedId)}
           />
@@ -185,7 +183,6 @@ export function BallotView({ student, onSelect, onReview, onGoIdentityCheck }: B
                 <Send size={18} />
               </span>
             </Button>
-            <p className="mt-3 text-[10px] font-black text-outline uppercase tracking-[0.2em]">Step 2 of 4</p>
           </div>
         </div>
       </motion.div>
