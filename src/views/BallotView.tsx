@@ -1,6 +1,5 @@
 import * as React from "react";
-import { CheckCircle2, Info, Landmark, RotateCcw } from "lucide-react";
-import { Button } from "@/src/components/ui/Button";
+import { CheckCircle2, Landmark } from "lucide-react";
 import { Card } from "@/src/components/ui/Card";
 import { Candidate, Student } from "@/src/types";
 import { cn } from "@/src/lib/utils";
@@ -115,32 +114,16 @@ export function BallotView({ student, onSelect }: BallotViewProps) {
                   </div>
                 </div>
 
-                <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-outline-variant/20 flex justify-between items-center">
-                  <button className="flex items-center gap-2 text-secondary font-bold text-[10px] uppercase tracking-widest hover:underline">
-                    <Info size={14} />
-                    View Platform
-                  </button>
-                  {selectedId === candidate.id && (
+                {selectedId === candidate.id && (
+                  <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-outline-variant/20 flex justify-end items-center">
                     <div className="flex items-center gap-1.5 text-secondary font-bold text-[10px] uppercase tracking-widest">
                       <CheckCircle2 size={14} className="fill-current" />
                       Selected
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </Card>
             ))}
-
-            {/* Write-in Option */}
-            <Card className="p-5 sm:p-8 border-dashed border-outline-variant bg-surface-container-lowest/50 hover:bg-white transition-all cursor-pointer flex flex-col items-center justify-center text-center space-y-4">
-              <div className="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center text-outline">
-                <RotateCcw size={32} />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-lg font-bold text-on-surface">Write-in Candidate</h3>
-                <p className="text-sm text-on-surface-variant">Specify your own candidate choice</p>
-              </div>
-              <Button variant="outline" size="sm" className="font-bold">Enter Name</Button>
-            </Card>
           </div>
 
           <Card className="p-6 bg-surface-container border-outline-variant/30">
