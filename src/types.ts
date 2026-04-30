@@ -1,6 +1,7 @@
 export enum AppView {
   AUTH = 'AUTH',
   VERIFY = 'VERIFY',
+  VERIFY_CONFIRM = 'VERIFY_CONFIRM',
   BALLOT = 'BALLOT',
   REVIEW = 'REVIEW',
   SUCCESS = 'SUCCESS',
@@ -16,6 +17,16 @@ export interface Candidate {
   description: string;
   photoUrl: string;
   platform: string[];
+}
+
+export interface Student {
+  id: string; // HTU index number (10 digits)
+  name: string;
+  email: string;
+  photoUrl: string;
+  department: string;
+  registrationDate: string;
+  status: 'Active' | 'Inactive' | 'Suspended';
 }
 
 export interface Voter {

@@ -3,10 +3,11 @@ import { motion } from "motion/react";
 import { CheckCircle2, Info, User, Landmark, ShieldCheck, Send, RotateCcw, Lock } from "lucide-react";
 import { Button } from "@/src/components/ui/Button";
 import { Card } from "@/src/components/ui/Card";
-import { Candidate } from "@/src/types";
+import { Candidate, Student } from "@/src/types";
 import { cn } from "@/src/lib/utils";
 
 interface BallotViewProps {
+  student?: Student | null;
   onSelect: (candidate: Candidate) => void;
   onReview: () => void;
 }
@@ -38,7 +39,7 @@ const CANDIDATES: Candidate[] = [
   }
 ];
 
-export function BallotView({ onSelect, onReview }: BallotViewProps) {
+export function BallotView({ student, onSelect, onReview }: BallotViewProps) {
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
 
   const handleSelect = (candidate: Candidate) => {
@@ -61,12 +62,16 @@ export function BallotView({ onSelect, onReview }: BallotViewProps) {
                 <ShieldCheck className="w-4 h-4 text-secondary fill-secondary" />
               </div>
               <div>
-                <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-1">Voter ID</p>
-                <p className="font-bold font-mono text-sm">CV-9928-4410-X</p>
+                <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-1">Name</p>
+                <p className="font-bold text-sm">{student?.name || "N/A"}</p>
               </div>
               <div>
-                <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-1">Electoral District</p>
-                <p className="font-bold text-sm">District 04 - Metro North</p>
+                <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-1">HTU Index Number</p>
+                <p className="font-bold font-mono text-sm">{student?.id || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-1">Department</p>
+                <p className="font-bold text-sm">{student?.department || "N/A"}</p>
               </div>
               <div className="pt-2">
                 <div className="flex items-center gap-2 text-secondary font-bold text-[11px] uppercase tracking-wider">

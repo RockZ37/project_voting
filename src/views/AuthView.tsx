@@ -6,7 +6,7 @@ import { AppView } from "@/src/types";
 import * as React from "react";
 
 interface AuthViewProps {
-  onLogin: (isAdmin?: boolean) => void;
+  onLogin: (isAdmin?: boolean, indexNumber?: string) => void;
 }
 
 export function AuthView({ onLogin }: AuthViewProps) {
@@ -33,9 +33,9 @@ export function AuthView({ onLogin }: AuthViewProps) {
     if (e.key === "Enter") {
       const trimmed = indexNumber.trim().toUpperCase();
       if (trimmed.startsWith("ADMIN-") || trimmed === "ELECTION_OFFICER") {
-        onLogin(true); // Admin login
+        onLogin(true, ""); // Admin login
       } else if (validateIndexNumber(indexNumber)) {
-        onLogin(false); // Regular voter login
+        onLogin(false, indexNumber); // Regular voter login
       }
     }
   };
@@ -74,9 +74,9 @@ export function AuthView({ onLogin }: AuthViewProps) {
                 onClick={() => {
                   const trimmed = indexNumber.trim().toUpperCase();
                   if (trimmed.startsWith("ADMIN-") || trimmed === "ELECTION_OFFICER") {
-                    onLogin(true);
+                    onLogin(true, "");
                   } else if (validateIndexNumber(indexNumber)) {
-                    onLogin(false);
+                    onLogin(false, indexNumber);
                   }
                 }}
               >

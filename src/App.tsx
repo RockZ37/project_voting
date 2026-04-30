@@ -4,10 +4,11 @@
  */
 
 import * as React from "react";
-import { AppView, Candidate } from "./types";
+import { AppView, Candidate, Student } from "./types";
 import { Header } from "./components/layout/Header";
 import { AuthView } from "./views/AuthView";
 import { VerifyIdentityView } from "./views/VerifyIdentityView";
+import { VerificationConfirmView } from "./views/VerificationConfirmView";
 import { BallotView } from "./views/BallotView";
 import { AdminDashboardView } from "./views/AdminDashboardView";
 import { AdminRegistryView } from "./views/AdminRegistryView";
@@ -20,10 +21,13 @@ import { CheckCircle2, Lock, ShieldCheck, Printer, Send, Landmark } from "lucide
 export default function App() {
   const [currentView, setCurrentView] = React.useState<AppView>(AppView.AUTH);
   const [isAdmin, setIsAdmin] = React.useState(false);
+  const [verifiedStudent, setVerifiedStudent] = React.useState<Student | null>(null);
+  const [indexNumber, setIndexNumber] = React.useState<string>("");
   const [selectedCandidate, setSelectedCandidate] = React.useState<Candidate | null>(null);
 
-  const handleLogin = (admin: boolean = false) => {
+  const handleLogin = (admin: boolean = false, studentId: string = "") => {
     setIsAdmin(admin);
+    setIndexNumber(studentId);
     if (admin) {
       // Admins go through facial verification first
       setCurrentView(AppView.VERIFY);
@@ -39,14 +43,30 @@ export default function App() {
       case AppView.VERIFY:
         return (
           <VerifyIdentityView 
-            onVerify={() => setCurrentView(isAdmin ? AppView.ADMIN_DASHBOARD : AppView.BALLOT)} 
+            indexNumber={indexNumber}
+            onVerifyWithStudent={(student) => {
+              setVerifiedStudent(student);
+              setCurrentView(isAdmin ? AppView.ADMIN_DASHBOARD : AppView.VERIFY_CONFIRM);
+            }}
             onCancel={() => setCurrentView(AppView.AUTH)}
             isAdmin={isAdmin}
           />
         );
+      case AppView.VERIFY_CONFIRM:
+        return verifiedStudent ? (
+          <VerificationConfirmView
+            student={verifiedStudent}
+            onConfirm={() => setCurrentView(AppView.BALLOT)}
+            onCancel={() => {
+              setVerifiedStudent(null);
+              setCurrentView(AppView.AUTH);
+            }}
+          />
+        ) : null;
       case AppView.BALLOT:
         return (
           <BallotView 
+            student={verifiedStudent}
             onSelect={setSelectedCandidate} 
             onReview={() => setCurrentView(AppView.REVIEW)} 
           />
@@ -180,6 +200,7 @@ export default function App() {
                   className="font-bold text-secondary uppercase tracking-widest text-[11px]"
                   onClick={() => {
                     setSelectedCandidate(null);
+                    setVerifiedStudent(null);
                     setCurrentView(AppView.AUTH);
                   }}
                 >
