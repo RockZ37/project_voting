@@ -3,12 +3,13 @@ import { CheckCircle2, Landmark } from "lucide-react";
 import { Card } from "@/src/components/ui/Card";
 import { Candidate, Student } from "@/src/types";
 import { cn } from "@/src/lib/utils";
-import { BallotSidebar } from "@/src/components/layout/BallotSidebar";
 import { CandidateReviewModal } from "@/src/components/CandidateReviewModal";
+import { BallotPageLayout } from "@/src/components/layout/BallotPageLayout";
 
 interface BallotViewProps {
   student?: Student | null;
   onSelect: (candidate: Candidate) => void;
+  voteCount: number;
 }
 
 const CANDIDATES: Candidate[] = [
@@ -38,7 +39,7 @@ const CANDIDATES: Candidate[] = [
   }
 ];
 
-export function BallotView({ student, onSelect }: BallotViewProps) {
+export function BallotView({ student, onSelect, voteCount }: BallotViewProps) {
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [modalOpen, setModalOpen] = React.useState(false);
   const [modalCandidate, setModalCandidate] = React.useState<Candidate | null>(null);
@@ -58,14 +59,7 @@ export function BallotView({ student, onSelect }: BallotViewProps) {
   const selectedCandidate = CANDIDATES.find(c => c.id === selectedId);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 pb-36">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-10 items-start">
-        <aside className="lg:col-span-3 order-first">
-          <BallotSidebar />
-        </aside>
-
-        {/* Main Ballot */}
-        <div className="lg:col-span-9 space-y-8 order-last">
+    <BallotPageLayout voteCount={voteCount}>
           <header className="space-y-2">
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-on-surface">General Election: Presidential</h1>
             <p className="text-on-surface-variant text-base leading-relaxed">
@@ -146,8 +140,6 @@ export function BallotView({ student, onSelect }: BallotViewProps) {
             onClose={() => { setModalOpen(false); setModalCandidate(null); }}
             onConfirm={handleConfirmSelection}
           />
-        </div>
-      </div>
-    </div>
+    </BallotPageLayout>
   );
 }
