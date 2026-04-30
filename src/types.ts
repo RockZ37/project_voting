@@ -46,3 +46,12 @@ export interface AuditLog {
   ip: string;
   status: 'SUCCESS' | 'REJECTED' | 'MFA PENDING';
 }
+
+export interface NotificationItem {
+  id: string;
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  tone: 'info' | 'success' | 'warning';
+}

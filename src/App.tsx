@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Button } from "./components/ui/Button";
 import { Card } from "./components/ui/Card";
 import { CheckCircle2, Lock, ShieldCheck, Printer, Send, Landmark } from "lucide-react";
+import { NotificationItem } from "./types";
 
 export default function App() {
   const [currentView, setCurrentView] = React.useState<AppView>(AppView.AUTH);
@@ -24,10 +25,34 @@ export default function App() {
   const [verifiedStudent, setVerifiedStudent] = React.useState<Student | null>(null);
   const [indexNumber, setIndexNumber] = React.useState<string>("");
   const [selectedCandidate, setSelectedCandidate] = React.useState<Candidate | null>(null);
+  const [notifications, setNotifications] = React.useState<NotificationItem[]>([]);
+
+  const addNotification = React.useCallback((notification: Omit<NotificationItem, "id" | "timestamp" | "read">) => {
+    const timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+    setNotifications((current) => [
+      {
+        id: crypto.randomUUID(),
+        timestamp,
+        read: false,
+        ...notification,
+      },
+      ...current,
+    ]);
+  }, []);
+
+  const markNotificationsRead = React.useCallback(() => {
+    setNotifications((current) => current.map((notification) => ({ ...notification, read: true })));
+  }, []);
 
   const handleLogin = (admin: boolean = false, studentId: string = "") => {
     setIsAdmin(admin);
     setIndexNumber(studentId);
+    addNotification({
+      title: "Session Started",
+      message: admin ? `Administrator login started for ${studentId || "system user"}.` : `Verification started for HTU index ${studentId}.`,
+      tone: "info",
+    });
     if (admin) {
       // Admins go through facial verification first
       setCurrentView(AppView.VERIFY);
@@ -46,6 +71,11 @@ export default function App() {
             indexNumber={indexNumber}
             onVerifyWithStudent={(student) => {
               setVerifiedStudent(student);
+              addNotification({
+                title: "Identity Verified",
+                message: `${student.name} matched successfully and is ready for the next step.`,
+                tone: "success",
+              });
               setCurrentView(isAdmin ? AppView.ADMIN_DASHBOARD : AppView.VERIFY_CONFIRM);
             }}
             onCancel={() => setCurrentView(AppView.AUTH)}
@@ -58,6 +88,11 @@ export default function App() {
             student={verifiedStudent}
             onConfirm={() => {
               if (verifiedStudent.status === "Active") {
+                addNotification({
+                  title: "Access Approved",
+                  message: `${verifiedStudent.name} has been cleared for ballot access.`,
+                  tone: "success",
+                });
                 setCurrentView(AppView.BALLOT);
               }
             }}
@@ -73,6 +108,11 @@ export default function App() {
             student={verifiedStudent}
             onSelect={(candidate) => {
               setSelectedCandidate(candidate);
+              addNotification({
+                title: "Candidate Selected",
+                message: `${candidate.name} is now queued for final review.`,
+                tone: "info",
+              });
               setCurrentView(AppView.REVIEW);
             }}
           />
@@ -135,7 +175,14 @@ export default function App() {
               <Button 
                 size="xl" 
                 className="h-20 w-full text-lg shadow-xl shadow-secondary/20 hover:shadow-2xl transition-all"
-                onClick={() => setCurrentView(AppView.SUCCESS)}
+                onClick={() => {
+                  addNotification({
+                    title: "Vote Cast",
+                    message: `${selectedCandidate?.name ?? "Your selection"} has been submitted successfully.`,
+                    tone: "success",
+                  });
+                  setCurrentView(AppView.SUCCESS);
+                }}
               >
                 Seal and Cast My Vote
                 <Send size={20} className="ml-2" />
@@ -229,7 +276,14 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-surface selection:bg-secondary/20 transition-colors duration-500">
-      <Header currentView={currentView} setView={setCurrentView} isAdmin={isAdmin} student={verifiedStudent} />
+      <Header
+        currentView={currentView}
+        setView={setCurrentView}
+        isAdmin={isAdmin}
+        student={verifiedStudent}
+        notifications={notifications}
+        onNotificationsToggle={markNotificationsRead}
+      />
       <main className="pt-16 pb-20">
         <AnimatePresence mode="wait">
           <motion.div

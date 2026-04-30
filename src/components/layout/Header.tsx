@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Shield, User, LogOut, Bell, Landmark, ChevronDown } from "lucide-react";
-import { AppView } from "@/src/types";
+import { AppView, NotificationItem } from "@/src/types";
 import { Student } from "@/src/types";
 
 interface HeaderProps {
@@ -8,11 +8,22 @@ interface HeaderProps {
   setView: (view: AppView) => void;
   isAdmin: boolean;
   student?: Student | null;
+  notifications?: NotificationItem[];
+  onNotificationsToggle?: () => void;
 }
 
-export function Header({ currentView, setView, isAdmin, student }: HeaderProps) {
+export function Header({
+  currentView,
+  setView,
+  isAdmin,
+  student,
+  notifications = [],
+  onNotificationsToggle,
+}: HeaderProps) {
   const isAnonymous = currentView === AppView.AUTH || currentView === AppView.VERIFY;
   const [showProfile, setShowProfile] = React.useState(false);
+  const [showNotifications, setShowNotifications] = React.useState(false);
+  const unreadCount = notifications.filter((notification) => !notification.read).length;
 
   return (
     <header className="bg-white border-b border-outline-variant fixed top-0 w-full z-50 h-16">
@@ -63,8 +74,76 @@ export function Header({ currentView, setView, isAdmin, student }: HeaderProps) 
           ) : (
             <>
               <div className="relative group">
-                <Bell className="w-5 h-5 text-on-surface-variant cursor-pointer group-hover:text-primary" />
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-secondary rounded-full border-2 border-white"></span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowProfile(false);
+                    setShowNotifications((prev) => {
+                      const next = !prev;
+                      onNotificationsToggle?.();
+                      return next;
+                    });
+                  }}
+                  className="relative flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container transition-colors"
+                  aria-label="Notifications"
+                >
+                  <Bell className="w-5 h-5 text-on-surface-variant cursor-pointer group-hover:text-primary" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 min-w-5 h-5 px-1 rounded-full bg-secondary text-white text-[10px] font-black flex items-center justify-center border-2 border-white">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {showNotifications && (
+                  <div className="absolute right-0 top-12 w-[320px] sm:w-[360px] rounded-2xl border border-outline-variant bg-white shadow-2xl overflow-hidden z-50">
+                    <div className="p-4 bg-surface-container-low border-b border-outline-variant/30 flex items-center justify-between">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant">Notifications</p>
+                        <p className="text-sm text-on-surface-variant">Live updates from the ballot flow</p>
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-secondary">{unreadCount} new</span>
+                    </div>
+
+                    <div className="max-h-80 overflow-y-auto">
+                      {notifications.length > 0 ? (
+                        notifications.map((notification) => (
+                          <div
+                            key={notification.id}
+                            className={
+                              notification.read
+                                ? "p-4 border-b border-outline-variant/20"
+                                : "p-4 border-b border-outline-variant/20 bg-secondary/5"
+                            }
+                          >
+                            <div className="flex items-start gap-3">
+                              <div
+                                className={
+                                  notification.tone === "success"
+                                    ? "w-2.5 h-2.5 rounded-full bg-green-500 mt-1.5 shrink-0"
+                                    : notification.tone === "warning"
+                                      ? "w-2.5 h-2.5 rounded-full bg-amber-500 mt-1.5 shrink-0"
+                                      : "w-2.5 h-2.5 rounded-full bg-secondary mt-1.5 shrink-0"
+                                }
+                              />
+                              <div className="min-w-0">
+                                <div className="flex items-center justify-between gap-4">
+                                  <p className="font-bold text-on-surface text-sm">{notification.title}</p>
+                                  <span className="text-[10px] font-semibold uppercase tracking-widest text-on-surface-variant whitespace-nowrap">
+                                    {notification.timestamp}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">{notification.message}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-6 text-sm text-on-surface-variant">No notifications yet.</div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="relative">
                 <button
