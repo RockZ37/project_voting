@@ -1,10 +1,11 @@
 import * as React from "react";
 import { motion } from "motion/react";
-import { CheckCircle2, Info, Landmark, ShieldCheck, Send, RotateCcw, Lock, Eye, Vote, ClipboardCheck } from "lucide-react";
+import { CheckCircle2, Info, Landmark, ShieldCheck, Send, RotateCcw, Lock } from "lucide-react";
 import { Button } from "@/src/components/ui/Button";
 import { Card } from "@/src/components/ui/Card";
 import { Candidate, Student } from "@/src/types";
 import { cn } from "@/src/lib/utils";
+import { BallotSidebar } from "@/src/components/layout/BallotSidebar";
 
 interface BallotViewProps {
   student?: Student | null;
@@ -52,57 +53,17 @@ export function BallotView({ student, onSelect, onReview, onGoIdentityCheck }: B
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 pb-36">
-      <Card className="lg:hidden p-3 mb-4 bg-surface-container-low border-outline-variant/50">
-        <div className="flex gap-2 overflow-x-auto">
-          <Button variant="outline" size="sm" className="shrink-0 gap-2" onClick={onGoIdentityCheck}>
-            <Eye size={14} />
-            Identity Check
-          </Button>
-          <Button variant="primary" size="sm" className="shrink-0 gap-2" disabled>
-            <Vote size={14} />
-            Ballot
-          </Button>
-          <Button variant="outline" size="sm" className="shrink-0 gap-2" onClick={onReview} disabled={!selectedId}>
-            <ClipboardCheck size={14} />
-            Review
-          </Button>
-        </div>
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-10">
-        {/* Sidebar */}
-        <aside className="lg:col-span-3 space-y-6 sm:space-y-8">
-          <Card className="hidden lg:block p-4 sm:p-6 bg-surface-container-low border-outline-variant/50">
-            <h2 className="text-lg font-bold mb-4">Navigation</h2>
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={onGoIdentityCheck}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg border border-outline-variant/40 text-on-surface hover:bg-white transition-colors"
-              >
-                <Eye size={16} className="text-secondary" />
-                <span className="text-sm font-bold">Identity Check</span>
-              </button>
-              <div className="w-full flex items-center gap-3 px-3 py-2 rounded-lg border border-secondary bg-secondary/10 text-secondary">
-                <Vote size={16} />
-                <span className="text-sm font-bold">Ballot</span>
-              </div>
-              <button
-                type="button"
-                onClick={onReview}
-                disabled={!selectedId}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg border border-outline-variant/40 text-on-surface hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ClipboardCheck size={16} className="text-secondary" />
-                <span className="text-sm font-bold">Review</span>
-              </button>
-            </div>
-          </Card>
-
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-10 items-start">
+        <aside className="lg:col-span-3 order-first">
+          <BallotSidebar
+            onGoIdentityCheck={onGoIdentityCheck}
+            onReview={onReview}
+            canReview={Boolean(selectedId)}
+          />
         </aside>
 
         {/* Main Ballot */}
-        <div className="lg:col-span-9 space-y-8">
+        <div className="lg:col-span-9 space-y-8 order-last">
           <header className="space-y-2">
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-on-surface">General Election: Presidential</h1>
             <p className="text-on-surface-variant text-base leading-relaxed">
