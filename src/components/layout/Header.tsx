@@ -49,16 +49,7 @@ export function Header({ currentView, setView, isAdmin, student }: HeaderProps) 
                 </button>
               </>
             ) : (
-              <>
-                <button 
-                  onClick={() => setView(AppView.BALLOT)}
-                  className={currentView === AppView.BALLOT ? "text-primary border-b-2 border-primary pb-1" : "text-on-surface-variant hover:text-primary"}
-                >
-                  Ballot
-                </button>
-                <button className="text-on-surface-variant hover:text-primary">Status</button>
-                <button className="text-on-surface-variant hover:text-primary">Support</button>
-              </>
+              <></>
             )}
           </nav>
         )}
