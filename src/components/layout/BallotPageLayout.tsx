@@ -49,7 +49,7 @@ export function BallotPageLayout({ voteCount, children }: BallotPageLayoutProps)
 
       {/* Mobile sidebar drawer */}
       <aside
-        className={`fixed left-0 top-16 bottom-0 z-40 w-72 bg-white border-r border-outline-variant overflow-y-auto transform transition-transform duration-300 lg:hidden ${
+        className={`fixed left-0 top-0 bottom-0 z-40 w-72 bg-surface-container border-r border-outline-variant overflow-y-auto transform transition-transform duration-300 lg:hidden ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -62,8 +62,10 @@ export function BallotPageLayout({ voteCount, children }: BallotPageLayoutProps)
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 pb-36">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-10 items-start">
           {/* Desktop sidebar - hidden on mobile */}
-          <aside className="hidden lg:block lg:col-span-3 order-first">
-            <BallotSidebar voteCount={voteCount} />
+          <aside className="hidden lg:block lg:col-span-3 order-first sticky top-0">
+            <div className="h-screen overflow-y-auto py-8">
+              <BallotSidebar voteCount={voteCount} />
+            </div>
           </aside>
 
           <div className="lg:col-span-9 space-y-8 order-last">{children}</div>
