@@ -87,9 +87,7 @@ export function Header({
                   Logs
                 </button>
               </>
-            ) : (
-              <></>
-            )}
+            ) : null}
           </nav>
         )}
 

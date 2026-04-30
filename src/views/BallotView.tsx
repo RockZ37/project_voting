@@ -140,6 +140,6 @@ export function BallotView({ student, onSelect, voteCount }: BallotViewProps) {
             onClose={() => { setModalOpen(false); setModalCandidate(null); }}
             onConfirm={handleConfirmSelection}
           />
-    </BallotPageLayout>
+        </BallotPageLayout>
   );
 }
