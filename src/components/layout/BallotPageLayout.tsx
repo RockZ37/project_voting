@@ -88,24 +88,23 @@ export function BallotPageLayout({ voteCount, children, currentElection, selecte
       </aside>
 
       {/* Desktop + Mobile layout */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 pb-36">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-10 items-start">
-          {/* Desktop sidebar - hidden on mobile */}
-          <aside className="hidden lg:block lg:col-span-3 order-first sticky top-0">
-            <div className="h-screen overflow-y-auto py-8">
-              <BallotSidebar 
-                voteCount={voteCount}
-                currentElection={currentElection}
-                selectedCandidateName={selectedCandidateName}
-                showResults={showResults}
-                onViewElections={onViewElections}
-                onViewResults={onViewResults}
-              />
-            </div>
-          </aside>
-
-          <div className="lg:col-span-9 space-y-8 order-last">{children}</div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 pb-36 lg:pl-[19rem]">
+        <div className="lg:hidden">
+          <div className="space-y-8">{children}</div>
         </div>
+
+        <aside className="hidden lg:block fixed top-16 left-0 bottom-0 w-72 px-4 py-8 overflow-y-auto z-20">
+          <BallotSidebar 
+            voteCount={voteCount}
+            currentElection={currentElection}
+            selectedCandidateName={selectedCandidateName}
+            showResults={showResults}
+            onViewElections={onViewElections}
+            onViewResults={onViewResults}
+          />
+        </aside>
+
+        <div className="hidden lg:block space-y-8">{children}</div>
       </div>
     </div>
   );
