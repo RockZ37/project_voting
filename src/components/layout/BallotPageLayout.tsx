@@ -1,13 +1,17 @@
 import * as React from "react";
 import { Menu, X } from "lucide-react";
 import { BallotSidebar } from "@/src/components/layout/BallotSidebar";
+import { Election, AppView } from "@/src/types";
 
 interface BallotPageLayoutProps {
   voteCount: number;
   children: React.ReactNode;
+  currentElection?: Election | null;
+  onElectionChange?: (election: Election) => void;
+  onViewElections?: () => void;
 }
 
-export function BallotPageLayout({ voteCount, children }: BallotPageLayoutProps) {
+export function BallotPageLayout({ voteCount, children, currentElection, onElectionChange, onViewElections }: BallotPageLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
 
   React.useEffect(() => {
@@ -53,8 +57,29 @@ export function BallotPageLayout({ voteCount, children }: BallotPageLayoutProps)
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="p-4">
-          <BallotSidebar voteCount={voteCount} />
+        <div className="p-4 space-y-6">
+          <div className="flex items-center justify-between pb-2 border-b border-outline-variant/30">
+            <h3 className="text-sm font-bold text-on-surface uppercase tracking-wider">Menu</h3>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="p-1 hover:bg-on-surface/10 rounded-lg transition-colors"
+              aria-label="Close menu"
+            >
+              <X size={20} className="text-on-surface-variant" />
+            </button>
+          </div>
+          <BallotSidebar 
+            voteCount={voteCount}
+            currentElection={currentElection}
+            onElectionChange={(election) => {
+              onElectionChange?.(election);
+              setSidebarOpen(false);
+            }}
+            onViewElections={() => {
+              onViewElections?.();
+              setSidebarOpen(false);
+            }}
+          />
         </div>
       </aside>
 
@@ -64,7 +89,12 @@ export function BallotPageLayout({ voteCount, children }: BallotPageLayoutProps)
           {/* Desktop sidebar - hidden on mobile */}
           <aside className="hidden lg:block lg:col-span-3 order-first sticky top-0">
             <div className="h-screen overflow-y-auto py-8">
-              <BallotSidebar voteCount={voteCount} />
+              <BallotSidebar 
+                voteCount={voteCount}
+                currentElection={currentElection}
+                onElectionChange={onElectionChange}
+                onViewElections={onViewElections}
+              />
             </div>
           </aside>
 

@@ -2,6 +2,8 @@ export enum AppView {
   AUTH = 'AUTH',
   VERIFY = 'VERIFY',
   VERIFY_CONFIRM = 'VERIFY_CONFIRM',
+  ELECTIONS = 'ELECTIONS',
+  ELECTION_DETAIL = 'ELECTION_DETAIL',
   BALLOT = 'BALLOT',
   REVIEW = 'REVIEW',
   SUCCESS = 'SUCCESS',
@@ -17,6 +19,18 @@ export interface Candidate {
   description: string;
   photoUrl: string;
   platform: string[];
+}
+
+export type ElectionStatus = "Open" | "Upcoming" | "Closed";
+
+export interface Election {
+  id: string;
+  title: string;
+  category: string;
+  description: string;
+  status: ElectionStatus;
+  voteCount: number;
+  candidates: Candidate[];
 }
 
 export interface Student {

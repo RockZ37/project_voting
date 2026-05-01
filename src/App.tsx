@@ -4,11 +4,13 @@
  */
 
 import * as React from "react";
-import { AppView, Candidate, Student } from "./types";
+import { AppView, Candidate, Student, Election } from "./types";
 import { Header } from "./components/layout/Header";
 import { AuthView } from "./views/AuthView";
 import { VerifyIdentityView } from "./views/VerifyIdentityView";
 import { VerificationConfirmView } from "./views/VerificationConfirmView";
+import { ElectionsView } from "./views/ElectionsView";
+import { ElectionDetailView } from "./views/ElectionDetailView";
 import { BallotView } from "./views/BallotView";
 import { AdminDashboardView } from "./views/AdminDashboardView";
 import { AdminRegistryView } from "./views/AdminRegistryView";
@@ -26,6 +28,7 @@ export default function App() {
   const [verifiedStudent, setVerifiedStudent] = React.useState<Student | null>(null);
   const [indexNumber, setIndexNumber] = React.useState<string>("");
   const [selectedCandidate, setSelectedCandidate] = React.useState<Candidate | null>(null);
+  const [currentElection, setCurrentElection] = React.useState<Election | null>(null);
   const [liveVoteCount, setLiveVoteCount] = React.useState<number>(12845);
   const [notifications, setNotifications] = React.useState<NotificationItem[]>([]);
   const notificationTimersRef = React.useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -108,7 +111,7 @@ export default function App() {
                   message: `${verifiedStudent.name} has been cleared for ballot access.`,
                   tone: "success",
                 });
-                setCurrentView(AppView.BALLOT);
+                setCurrentView(AppView.ELECTIONS);
               }
             }}
             onCancel={() => {
@@ -117,11 +120,57 @@ export default function App() {
             }}
           />
         ) : null;
+      case AppView.ELECTIONS:
+        return (
+          <BallotPageLayout voteCount={liveVoteCount}>
+            <ElectionsView
+              onSelectElection={(election) => {
+                setCurrentElection(election);
+                addNotification({
+                  title: "Election Selected",
+                  message: `You have selected the ${election.title}. Please review the candidates.`,
+                  tone: "info",
+                });
+              }}
+              onViewChange={setCurrentView}
+            />
+          </BallotPageLayout>
+        );
+      case AppView.ELECTION_DETAIL:
+        return currentElection ? (
+          <ElectionDetailView
+            election={currentElection}
+            student={verifiedStudent}
+            onSelect={(candidate) => {
+              setSelectedCandidate(candidate);
+              addNotification({
+                title: "Candidate Selected",
+                message: `${candidate.name} is now queued for final review.`,
+                tone: "info",
+              });
+              setCurrentView(AppView.REVIEW);
+            }}
+            onBack={() => setCurrentView(AppView.ELECTIONS)}
+          />
+        ) : (
+          <BallotPageLayout voteCount={liveVoteCount}>
+            <div className="text-center py-12">
+              <p className="text-on-surface-variant">No election selected</p>
+              <Button 
+                onClick={() => setCurrentView(AppView.ELECTIONS)}
+                className="mt-4"
+              >
+                Back to Elections
+              </Button>
+            </div>
+          </BallotPageLayout>
+        );
       case AppView.BALLOT:
         return (
           <BallotView 
             student={verifiedStudent}
             voteCount={liveVoteCount}
+            currentElection={currentElection}
             onSelect={(candidate) => {
               setSelectedCandidate(candidate);
               addNotification({
@@ -135,7 +184,15 @@ export default function App() {
         );
       case AppView.REVIEW:
         return (
-          <BallotPageLayout voteCount={liveVoteCount}>
+          <BallotPageLayout 
+            voteCount={currentElection?.voteCount || liveVoteCount}
+            currentElection={currentElection}
+            onElectionChange={(election) => {
+              setCurrentElection(election);
+              setCurrentView(AppView.ELECTION_DETAIL);
+            }}
+            onViewElections={() => setCurrentView(AppView.ELECTIONS)}
+          >
             <div className="max-w-2xl mx-auto py-20 px-6 space-y-12">
               <div className="text-center space-y-4">
                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-surface-container rounded-full text-xs font-black uppercase tracking-widest text-on-surface-variant mb-2">
@@ -209,7 +266,7 @@ export default function App() {
                   variant="outline" 
                   size="lg" 
                   className="w-full font-bold h-14"
-                  onClick={() => setCurrentView(AppView.BALLOT)}
+                  onClick={() => setCurrentView(AppView.ELECTION_DETAIL)}
                 >
                   Change Selection
                 </Button>
@@ -219,7 +276,19 @@ export default function App() {
         );
       case AppView.SUCCESS:
         return (
-          <BallotPageLayout voteCount={liveVoteCount}>
+          <BallotPageLayout 
+            voteCount={currentElection?.voteCount || liveVoteCount}
+            currentElection={currentElection}
+            onElectionChange={(election) => {
+              setSelectedCandidate(null);
+              setCurrentElection(election);
+              setCurrentView(AppView.ELECTION_DETAIL);
+            }}
+            onViewElections={() => {
+              setSelectedCandidate(null);
+              setCurrentView(AppView.ELECTIONS);
+            }}
+          >
             <div className="flex flex-col items-center justify-center min-h-[calc(100vh-64px)] p-6">
               <motion.div 
                  initial={{ scale: 0.8, opacity: 0 }}
@@ -274,6 +343,7 @@ export default function App() {
                     onClick={() => {
                       setSelectedCandidate(null);
                       setVerifiedStudent(null);
+                      setCurrentElection(null);
                       setCurrentView(AppView.AUTH);
                     }}
                   >
