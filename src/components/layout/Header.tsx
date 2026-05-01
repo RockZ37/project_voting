@@ -64,32 +64,7 @@ export function Header({
           <span className="text-xl font-bold tracking-widest uppercase text-on-surface">CivicVote</span>
         </div>
 
-        {!isAnonymous && (
-          <nav className="hidden md:flex gap-8">
-            {isAdmin ? (
-              <>
-                <button 
-                  onClick={() => setView(AppView.ADMIN_DASHBOARD)}
-                  className={currentView === AppView.ADMIN_DASHBOARD ? "text-primary border-b-2 border-primary pb-1" : "text-on-surface-variant hover:text-primary"}
-                >
-                  Dashboard
-                </button>
-                <button 
-                  onClick={() => setView(AppView.ADMIN_REGISTRY)}
-                  className={currentView === AppView.ADMIN_REGISTRY ? "text-primary border-b-2 border-primary pb-1" : "text-on-surface-variant hover:text-primary"}
-                >
-                  Registry
-                </button>
-                <button 
-                  onClick={() => setView(AppView.ADMIN_LOGS)}
-                  className={currentView === AppView.ADMIN_LOGS ? "text-primary border-b-2 border-primary pb-1" : "text-on-surface-variant hover:text-primary"}
-                >
-                  Logs
-                </button>
-              </>
-            ) : null}
-          </nav>
-        )}
+        {!isAnonymous && null}
 
         <div className="flex items-center gap-4">
           {isAnonymous ? (

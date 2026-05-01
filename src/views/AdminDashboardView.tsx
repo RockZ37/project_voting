@@ -4,11 +4,15 @@ import { Users, Vote, Percent, Activity, RefreshCw, PlayCircle, StopCircle, Rota
 import { Card } from "@/src/components/ui/Card";
 import { Button } from "@/src/components/ui/Button";
 import { cn } from "@/src/lib/utils";
-import { Election } from "@/src/types";
+import { Election, AppView } from "@/src/types";
 
 interface AdminDashboardViewProps {
   currentElection?: Election | null;
   onCloseElection?: () => void;
+  onCreateElection?: (election: Election) => void;
+  onAddCandidate?: (electionId: string, candidate: import("@/src/types").Candidate) => void;
+  onNavigate?: (view: AppView) => void;
+  elections?: Election[];
 }
 
 const DATA = [
@@ -17,11 +21,108 @@ const DATA = [
   { name: 'Sarah Jenkins', votes: 148402, color: '#bec6e0' },
 ];
 
-export function AdminDashboardView({ currentElection, onCloseElection }: AdminDashboardViewProps) {
+export function AdminDashboardView({ currentElection, onCloseElection, onCreateElection, onAddCandidate, onNavigate, elections = [] }: AdminDashboardViewProps) {
   const totalVotes = DATA.reduce((acc, curr) => acc + curr.votes, 0);
+  const [showCreate, setShowCreate] = React.useState(false);
+  const [showAddCandidate, setShowAddCandidate] = React.useState(false);
+  const [newElectionTitle, setNewElectionTitle] = React.useState("");
+  const [newElectionCategory, setNewElectionCategory] = React.useState("");
+  const [newElectionDescription, setNewElectionDescription] = React.useState("");
+
+  const [candidateElectionId, setCandidateElectionId] = React.useState<string | undefined>(undefined);
+  const [candidateName, setCandidateName] = React.useState("");
+  const [candidateParty, setCandidateParty] = React.useState("");
+  const [candidateDescription, setCandidateDescription] = React.useState("");
+  const [candidatePhoto, setCandidatePhoto] = React.useState("");
+
+  const submitCreateElection = () => {
+    if (!newElectionTitle.trim()) return;
+    const election = {
+      id: crypto.randomUUID(),
+      title: newElectionTitle,
+      category: newElectionCategory || "Uncategorized",
+      description: newElectionDescription || "",
+      status: "Upcoming" as const,
+      voteCount: 0,
+      candidates: [],
+    };
+    onCreateElection?.(election);
+    setNewElectionTitle("");
+    setNewElectionCategory("");
+    setNewElectionDescription("");
+    setShowCreate(false);
+  };
+
+  const submitAddCandidate = () => {
+    if (!candidateElectionId || !candidateName.trim()) return;
+    const candidate = {
+      id: crypto.randomUUID(),
+      name: candidateName,
+      party: candidateParty || "Independent",
+      description: candidateDescription || "",
+      photoUrl: candidatePhoto || `https://picsum.photos/seed/${encodeURIComponent(candidateName)}/200/200`,
+      platform: [],
+      voteCount: 0,
+    };
+    onAddCandidate?.(candidateElectionId, candidate);
+    setCandidateElectionId(undefined);
+    setCandidateName("");
+    setCandidateParty("");
+    setCandidateDescription("");
+    setCandidatePhoto("");
+    setShowAddCandidate(false);
+  };
+
+  React.useEffect(() => {
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent<string>;
+      if (ce?.detail === 'create-election') setShowCreate(true);
+      if (ce?.detail === 'add-candidate') setShowAddCandidate(true);
+    };
+    window.addEventListener('admin-action', handler as any);
+    return () => window.removeEventListener('admin-action', handler as any);
+  }, []);
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-10 space-y-10">
+    <div className="space-y-10">
+      {/* Main admin content continues below */}
+          {showCreate && (
+            <Card className="p-6 mb-6">
+              <h3 className="text-lg font-bold">Create Election</h3>
+              <div className="mt-4 grid grid-cols-1 gap-3">
+                <input value={newElectionTitle} onChange={(e) => setNewElectionTitle(e.target.value)} placeholder="Title" className="p-2 border rounded" />
+                <input value={newElectionCategory} onChange={(e) => setNewElectionCategory(e.target.value)} placeholder="Category" className="p-2 border rounded" />
+                <textarea value={newElectionDescription} onChange={(e) => setNewElectionDescription(e.target.value)} placeholder="Description" className="p-2 border rounded" />
+                <div className="flex gap-2">
+                  <Button onClick={submitCreateElection}>Create</Button>
+                  <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {showAddCandidate && (
+            <Card className="p-6 mb-6">
+              <h3 className="text-lg font-bold">Add Candidate</h3>
+              <div className="mt-4 grid grid-cols-1 gap-3">
+                <select value={candidateElectionId} onChange={(e) => setCandidateElectionId(e.target.value)} className="p-2 border rounded">
+                  <option value="">Select Election</option>
+                  {elections.map((el) => (
+                    <option key={el.id} value={el.id}>{el.title} ({el.status})</option>
+                  ))}
+                </select>
+                <input value={candidateName} onChange={(e) => setCandidateName(e.target.value)} placeholder="Candidate name" className="p-2 border rounded" />
+                <input value={candidateParty} onChange={(e) => setCandidateParty(e.target.value)} placeholder="Party" className="p-2 border rounded" />
+                <input value={candidatePhoto} onChange={(e) => setCandidatePhoto(e.target.value)} placeholder="Photo URL (optional)" className="p-2 border rounded" />
+                <textarea value={candidateDescription} onChange={(e) => setCandidateDescription(e.target.value)} placeholder="Short bio / description" className="p-2 border rounded" />
+                <div className="flex gap-2">
+                  <Button onClick={submitAddCandidate}>Add Candidate</Button>
+                  <Button variant="outline" onClick={() => setShowAddCandidate(false)}>Cancel</Button>
+                </div>
+              </div>
+            </Card>
+          )}
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
@@ -128,30 +229,7 @@ export function AdminDashboardView({ currentElection, onCloseElection }: AdminDa
             </div>
           </Card>
 
-          {/* Controls */}
-          <Card className="p-8 space-y-10">
-            <h3 className="text-2xl font-bold tracking-tight">Global Election Controls</h3>
-            <div className="flex flex-wrap gap-4">
-              <Button className="flex-1 min-w-[200px] h-14 font-bold bg-zinc-900 gap-3" disabled>
-                <PlayCircle size={20} />
-                Start Election
-              </Button>
-              <Button className="flex-1 min-w-[200px] h-14 font-bold bg-error text-white gap-3" onClick={onCloseElection} disabled={!currentElection || currentElection?.status === 'Closed'}>
-                <StopCircle size={20} />
-                Close Current Election
-              </Button>
-              <Button variant="outline" className="flex-1 min-w-[200px] h-14 font-bold gap-3">
-                <RotateCcw size={20} />
-                Emergency Reset
-              </Button>
-            </div>
-            <div className="p-4 bg-error-container/40 rounded-lg flex items-center gap-4 border border-error/10">
-              <AlertTriangle className="text-error shrink-0" size={20} />
-              <p className="text-xs font-bold text-on-error-container leading-tight">
-                Note: Ending the election is irreversible and will trigger automatic final auditing procedures.
-              </p>
-            </div>
-          </Card>
+         
         </div>
 
         {/* Sidebar Logs */}
@@ -188,24 +266,7 @@ export function AdminDashboardView({ currentElection, onCloseElection }: AdminDa
             </Button>
           </Card>
 
-          <div className="bg-primary-container text-white rounded-xl p-8 relative overflow-hidden shadow-2xl">
-            <div className="relative z-10 space-y-8">
-              <h3 className="text-2xl font-bold tracking-tight">Secure Admin Link</h3>
-              <div className="aspect-square bg-white/5 border border-dashed border-white/20 rounded-2xl flex flex-col items-center justify-center gap-6 group cursor-pointer">
-                <div className="w-40 h-40 border-2 border-secondary rounded-full flex items-center justify-center animate-pulse group-hover:scale-110 transition-transform">
-                  <Users className="text-secondary w-16 h-16" />
-                </div>
-                <div className="text-center space-y-1">
-                    <p className="text-xs font-black uppercase tracking-[0.2em] text-on-primary-container">Biometric Sensor Ready</p>
-                    <div className="inline-flex px-3 py-1 bg-green-500/20 text-green-400 text-[10px] font-black uppercase tracking-widest rounded-full">Active</div>
-                </div>
-              </div>
-              <Button className="w-full h-14 font-black uppercase tracking-widest bg-secondary text-white hover:bg-blue-700">
-                Re-Authenticate Now
-              </Button>
-            </div>
-            <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-secondary/10 rounded-full blur-3xl" />
-          </div>
+          
         </div>
       </div>
     </div>

@@ -6,133 +6,10 @@ import { cn } from "@/src/lib/utils";
 import { Button } from "@/src/components/ui/Button";
 
 interface ElectionsViewProps {
+  elections: Election[];
   onSelectElection: (election: Election) => void;
   onViewChange: (view: AppView) => void;
 }
-
-const ELECTIONS: Election[] = [
-  {
-    id: "1",
-    title: "Presidential Election",
-    category: "University Leadership",
-    description: "Vote for the next President of the University",
-    status: "Open",
-    voteCount: 3456,
-    candidates: [
-      {
-        id: "1",
-        name: "Dr. Elena Cooper",
-        party: "Academic Progressive",
-        description: "Expert in curriculum innovation and student welfare",
-        photoUrl: "https://picsum.photos/seed/elena-cooper/200/200",
-        platform: ["Education", "Innovation", "Inclusion"],
-        voteCount: 1500
-      },
-      {
-        id: "2",
-        name: "Prof. Robert Hayes",
-        party: "Traditional Values",
-        description: "Focused on academic excellence and institutional stability",
-        photoUrl: "https://picsum.photos/seed/robert-hayes/200/200",
-        platform: ["Excellence", "Stability", "Tradition"],
-        voteCount: 1200
-      },
-      {
-        id: "3",
-        name: "Dr. Amara Okafor",
-        party: "Independent Reformer",
-        description: "Advocating for modern campus facilities and student voice",
-        photoUrl: "https://picsum.photos/seed/amara-okafor/200/200",
-        platform: ["Facilities", "Transparency", "Student Voice"],
-        voteCount: 756
-      }
-    ]
-  },
-  {
-    id: "2",
-    title: "Vice Presidential Election",
-    category: "University Leadership",
-    description: "Vote for the next Vice President of the University",
-    status: "Open",
-    voteCount: 2987,
-    candidates: [
-      {
-        id: "4",
-        name: "Dr. James Mitchell",
-        party: "Academic Progressive",
-        description: "Senior faculty with strong administrative experience",
-        photoUrl: "https://picsum.photos/seed/james-mitchell/200/200",
-        platform: ["Administration", "Resources", "Support"],
-        voteCount: 1600
-      },
-      {
-        id: "5",
-        name: "Prof. Susan Khan",
-        party: "Independent Reformer",
-        description: "Advocate for student support services and diversity",
-        photoUrl: "https://picsum.photos/seed/susan-khan/200/200",
-        platform: ["Support", "Diversity", "Wellbeing"],
-        voteCount: 1387
-      }
-    ]
-  },
-  {
-    id: "3",
-    title: "Student Senate President",
-    category: "Student Government",
-    description: "Vote for the Student Senate President",
-    status: "Open",
-    voteCount: 5234,
-    candidates: [
-      {
-        id: "6",
-        name: "Aisha Mohammed",
-        party: "Student Voice",
-        description: "Dedicated to student rights and campus improvements",
-        photoUrl: "https://picsum.photos/seed/aisha-mohammed/200/200",
-        platform: ["Rights", "Facilities", "Activities"],
-        voteCount: 3200
-      },
-      {
-        id: "7",
-        name: "David Chen",
-        party: "Campus Action",
-        description: "Focused on budgeting and event organization",
-        photoUrl: "https://picsum.photos/seed/david-chen/200/200",
-        platform: ["Budget", "Events", "Community"],
-        voteCount: 2034
-      }
-    ]
-  },
-  {
-    id: "4",
-    title: "Faculty Senate President",
-    category: "Faculty Government",
-    description: "Vote for the Faculty Senate President",
-    status: "Upcoming",
-    voteCount: 0,
-    candidates: [
-      {
-        id: "8",
-        name: "Prof. Michael Johnson",
-        party: "Faculty First",
-        description: "Committed to faculty welfare and research support",
-        photoUrl: "https://picsum.photos/seed/michael-johnson/200/200",
-        platform: ["Welfare", "Research", "Development"],
-        voteCount: 0
-      }
-    ]
-  },
-  {
-    id: "5",
-    title: "General Election 2024",
-    category: "National Election",
-    description: "Vote in the national general election",
-    status: "Closed",
-    voteCount: 8765,
-    candidates: []
-  }
-];
 
 function getStatusIcon(status: string) {
   switch (status) {
@@ -160,8 +37,8 @@ function getStatusColor(status: string): string {
   }
 }
 
-export function ElectionsView({ onSelectElection, onViewChange }: ElectionsViewProps) {
-  const categories = Array.from(new Set(ELECTIONS.map(e => e.category)));
+export function ElectionsView({ elections, onSelectElection, onViewChange }: ElectionsViewProps) {
+  const categories = Array.from(new Set(elections.map((e) => e.category)));
 
   return (
     <div className="space-y-8 pb-12">
@@ -176,7 +53,7 @@ export function ElectionsView({ onSelectElection, onViewChange }: ElectionsViewP
       </header>
 
       {categories.map((category) => {
-        const categoryElections = ELECTIONS.filter(e => e.category === category);
+            const categoryElections = elections.filter((e) => e.category === category);
         return (
           <div key={category} className="space-y-4">
             <h2 className="text-xl sm:text-2xl font-bold text-on-surface uppercase tracking-wider px-4 sm:px-0">

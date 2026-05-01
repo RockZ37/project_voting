@@ -10,11 +10,13 @@ import { AuthView } from "./views/AuthView";
 import { VerifyIdentityView } from "./views/VerifyIdentityView";
 import { VerificationConfirmView } from "./views/VerificationConfirmView";
 import { ElectionsView } from "./views/ElectionsView";
+import SAMPLE_ELECTIONS from "./data/elections";
 import { ElectionDetailView } from "./views/ElectionDetailView";
 import { BallotView } from "./views/BallotView";
 import { AdminDashboardView } from "./views/AdminDashboardView";
 import { AdminRegistryView } from "./views/AdminRegistryView";
 import { AdminLogsView } from "./views/AdminLogsView";
+import AdminPageLayout from "./components/layout/AdminPageLayout";
 import { BallotPageLayout } from "./components/layout/BallotPageLayout";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "./components/ui/Button";
@@ -29,6 +31,8 @@ export default function App() {
   const [indexNumber, setIndexNumber] = React.useState<string>("");
   const [selectedCandidate, setSelectedCandidate] = React.useState<Candidate | null>(null);
   const [currentElection, setCurrentElection] = React.useState<Election | null>(null);
+  const [elections, setElections] = React.useState<Election[]>(SAMPLE_ELECTIONS);
+  
   const [liveVoteCount, setLiveVoteCount] = React.useState<number>(12845);
   const [votedElectionIds, setVotedElectionIds] = React.useState<Record<string, boolean>>({});
   const [notifications, setNotifications] = React.useState<NotificationItem[]>([]);
@@ -107,6 +111,27 @@ export default function App() {
     });
     setCurrentView(AppView.SUCCESS);
   }, [addNotification, currentElection, selectedCandidate?.name, votedElectionIds]);
+
+  const createElection = React.useCallback((election: Election) => {
+    setElections((curr) => [election, ...curr]);
+    setCurrentElection(election);
+    addNotification({
+      title: "Election Created",
+      message: `${election.title} has been created.`,
+      tone: "success",
+    });
+  }, [addNotification]);
+
+  const addCandidate = React.useCallback((electionId: string, candidate: Candidate) => {
+    setElections((curr) => curr.map((e) => e.id === electionId ? { ...e, candidates: [...e.candidates, candidate] } : e));
+    // if current election matches, update it too
+    setCurrentElection((curr) => curr && curr.id === electionId ? { ...curr, candidates: [...curr.candidates, candidate] } : curr);
+    addNotification({
+      title: "Candidate Added",
+      message: `${candidate.name} has been added to the election.`,
+      tone: "success",
+    });
+  }, [addNotification]);
 
   const closeCurrentElection = React.useCallback(() => {
     if (!currentElection) {
@@ -199,6 +224,7 @@ export default function App() {
         return (
           <BallotPageLayout voteCount={liveVoteCount} onViewResults={() => setCurrentView(AppView.RESULTS)}>
             <ElectionsView
+              elections={elections}
               onSelectElection={(election) => {
                 setCurrentElection(election);
                 addNotification({
@@ -544,15 +570,29 @@ export default function App() {
           );
       case AppView.ADMIN_DASHBOARD:
         return (
-          <AdminDashboardView
-            currentElection={currentElection}
-            onCloseElection={closeCurrentElection}
-          />
+          <AdminPageLayout currentElection={currentElection} elections={elections}>
+            <AdminDashboardView
+              currentElection={currentElection}
+              onCloseElection={closeCurrentElection}
+              onCreateElection={createElection}
+              onAddCandidate={addCandidate}
+              onNavigate={(view) => setCurrentView(view)}
+              elections={elections}
+            />
+          </AdminPageLayout>
         );
       case AppView.ADMIN_REGISTRY:
-        return <AdminRegistryView />;
+        return (
+          <AdminPageLayout currentElection={currentElection} elections={elections}>
+            <AdminRegistryView />
+          </AdminPageLayout>
+        );
       case AppView.ADMIN_LOGS:
-        return <AdminLogsView />;
+        return (
+          <AdminPageLayout currentElection={currentElection} elections={elections}>
+            <AdminLogsView />
+          </AdminPageLayout>
+        );
       default:
         return <AuthView onLogin={handleLogin} />;
     }
