@@ -30,8 +30,10 @@ export default function App() {
   const [selectedCandidate, setSelectedCandidate] = React.useState<Candidate | null>(null);
   const [currentElection, setCurrentElection] = React.useState<Election | null>(null);
   const [liveVoteCount, setLiveVoteCount] = React.useState<number>(12845);
+  const [votedElectionIds, setVotedElectionIds] = React.useState<Record<string, boolean>>({});
   const [notifications, setNotifications] = React.useState<NotificationItem[]>([]);
   const notificationTimersRef = React.useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const hasVotedForCurrentElection = currentElection ? Boolean(votedElectionIds[currentElection.id]) : false;
 
   React.useEffect(() => {
     return () => {
@@ -62,6 +64,36 @@ export default function App() {
   const markNotificationsRead = React.useCallback(() => {
     setNotifications((current) => current.map((notification) => ({ ...notification, read: true })));
   }, []);
+
+  const handleCastVote = React.useCallback(() => {
+    if (!currentElection) return;
+
+    if (votedElectionIds[currentElection.id]) {
+      addNotification({
+        title: "Vote Already Cast",
+        message: `You have already voted in the ${currentElection.title}.`,
+        tone: "warning",
+      });
+      return;
+    }
+
+    setVotedElectionIds((current) => ({
+      ...current,
+      [currentElection.id]: true,
+    }));
+
+    setCurrentElection((current) =>
+      current ? { ...current, voteCount: current.voteCount + 1 } : current,
+    );
+    setLiveVoteCount((count) => count + 1);
+
+    addNotification({
+      title: "Vote Cast",
+      message: `${selectedCandidate?.name ?? "Your selection"} has been submitted successfully.`,
+      tone: "success",
+    });
+    setCurrentView(AppView.SUCCESS);
+  }, [addNotification, currentElection, selectedCandidate?.name, votedElectionIds]);
 
   const handleLogin = (admin: boolean = false, studentId: string = "") => {
     setIsAdmin(admin);
@@ -187,10 +219,6 @@ export default function App() {
           <BallotPageLayout 
             voteCount={currentElection?.voteCount || liveVoteCount}
             currentElection={currentElection}
-            onElectionChange={(election) => {
-              setCurrentElection(election);
-              setCurrentView(AppView.ELECTION_DETAIL);
-            }}
             onViewElections={() => setCurrentView(AppView.ELECTIONS)}
           >
             <div className="max-w-2xl mx-auto py-20 px-6 space-y-12">
@@ -249,17 +277,10 @@ export default function App() {
                 <Button 
                   size="xl" 
                   className="h-20 w-full text-lg shadow-xl shadow-secondary/20 hover:shadow-2xl transition-all"
-                  onClick={() => {
-                    setLiveVoteCount((count) => count + 1);
-                    addNotification({
-                      title: "Vote Cast",
-                      message: `${selectedCandidate?.name ?? "Your selection"} has been submitted successfully.`,
-                      tone: "success",
-                    });
-                    setCurrentView(AppView.SUCCESS);
-                  }}
+                  onClick={handleCastVote}
+                  disabled={hasVotedForCurrentElection}
                 >
-                  Seal and Cast My Vote
+                  {hasVotedForCurrentElection ? "Vote Already Cast" : "Seal and Cast My Vote"}
                   <Send size={20} className="ml-2" />
                 </Button>
                 <Button 
@@ -279,11 +300,6 @@ export default function App() {
           <BallotPageLayout 
             voteCount={currentElection?.voteCount || liveVoteCount}
             currentElection={currentElection}
-            onElectionChange={(election) => {
-              setSelectedCandidate(null);
-              setCurrentElection(election);
-              setCurrentView(AppView.ELECTION_DETAIL);
-            }}
             onViewElections={() => {
               setSelectedCandidate(null);
               setCurrentView(AppView.ELECTIONS);

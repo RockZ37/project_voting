@@ -1,7 +1,7 @@
 import * as React from "react";
 import { CheckCircle2, Landmark, ChevronLeft } from "lucide-react";
 import { Card } from "@/src/components/ui/Card";
-import { Candidate, Student, Election, AppView } from "@/src/types";
+import { Candidate, Student, Election } from "@/src/types";
 import { cn } from "@/src/lib/utils";
 import { CandidateReviewModal } from "@/src/components/CandidateReviewModal";
 import { BallotPageLayout } from "@/src/components/layout/BallotPageLayout";
@@ -12,9 +12,10 @@ interface ElectionDetailViewProps {
   student?: Student | null;
   onSelect: (candidate: Candidate) => void;
   onBack: () => void;
+  hasVoted?: boolean;
 }
 
-export function ElectionDetailView({ election, student, onSelect, onBack }: ElectionDetailViewProps) {
+export function ElectionDetailView({ election, student, onSelect, onBack, hasVoted = false }: ElectionDetailViewProps) {
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [modalOpen, setModalOpen] = React.useState(false);
   const [modalCandidate, setModalCandidate] = React.useState<Candidate | null>(null);
@@ -30,6 +31,7 @@ export function ElectionDetailView({ election, student, onSelect, onBack }: Elec
   }
 
   const handleSelect = (candidate: Candidate) => {
+    if (hasVoted) return;
     setModalCandidate(candidate);
     setModalOpen(true);
   };
@@ -46,6 +48,14 @@ export function ElectionDetailView({ election, student, onSelect, onBack }: Elec
   return (
     <BallotPageLayout voteCount={election.voteCount}>
       <div className="space-y-8">
+        {hasVoted && (
+          <Card className="p-5 border-2 border-secondary bg-secondary/5">
+            <p className="text-sm font-semibold text-on-surface">
+              Your vote has already been recorded for this election. You can review the candidates, but you cannot vote again.
+            </p>
+          </Card>
+        )}
+
         <button
           onClick={onBack}
           className="flex items-center gap-2 text-secondary hover:text-secondary/80 font-semibold transition-colors"
@@ -74,7 +84,8 @@ export function ElectionDetailView({ election, student, onSelect, onBack }: Elec
                 <Card 
                   key={candidate.id}
                   className={cn(
-                    "p-5 sm:p-8 transition-all cursor-pointer group relative hover:shadow-lg",
+                    "p-5 sm:p-8 transition-all group relative hover:shadow-lg",
+                    hasVoted ? "cursor-not-allowed opacity-70" : "cursor-pointer",
                     selectedId === candidate.id ? "border-3 border-secondary bg-surface-container-low shadow-md scale-[1.01]" : "hover:border-outline"
                   )}
                   onClick={() => handleSelect(candidate)}

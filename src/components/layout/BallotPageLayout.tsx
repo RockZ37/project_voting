@@ -1,17 +1,16 @@
 import * as React from "react";
 import { Menu, X } from "lucide-react";
 import { BallotSidebar } from "@/src/components/layout/BallotSidebar";
-import { Election, AppView } from "@/src/types";
+import { Election } from "@/src/types";
 
 interface BallotPageLayoutProps {
   voteCount: number;
   children: React.ReactNode;
   currentElection?: Election | null;
-  onElectionChange?: (election: Election) => void;
   onViewElections?: () => void;
 }
 
-export function BallotPageLayout({ voteCount, children, currentElection, onElectionChange, onViewElections }: BallotPageLayoutProps) {
+export function BallotPageLayout({ voteCount, children, currentElection, onViewElections }: BallotPageLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
 
   React.useEffect(() => {
@@ -71,10 +70,6 @@ export function BallotPageLayout({ voteCount, children, currentElection, onElect
           <BallotSidebar 
             voteCount={voteCount}
             currentElection={currentElection}
-            onElectionChange={(election) => {
-              onElectionChange?.(election);
-              setSidebarOpen(false);
-            }}
             onViewElections={() => {
               onViewElections?.();
               setSidebarOpen(false);
@@ -92,7 +87,6 @@ export function BallotPageLayout({ voteCount, children, currentElection, onElect
               <BallotSidebar 
                 voteCount={voteCount}
                 currentElection={currentElection}
-                onElectionChange={onElectionChange}
                 onViewElections={onViewElections}
               />
             </div>
