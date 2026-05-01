@@ -4,6 +4,12 @@ import { Users, Vote, Percent, Activity, RefreshCw, PlayCircle, StopCircle, Rota
 import { Card } from "@/src/components/ui/Card";
 import { Button } from "@/src/components/ui/Button";
 import { cn } from "@/src/lib/utils";
+import { Election } from "@/src/types";
+
+interface AdminDashboardViewProps {
+  currentElection?: Election | null;
+  onCloseElection?: () => void;
+}
 
 const DATA = [
   { name: 'Dr. Elena Sterling', votes: 382400, color: '#0051d5' },
@@ -11,7 +17,7 @@ const DATA = [
   { name: 'Sarah Jenkins', votes: 148402, color: '#bec6e0' },
 ];
 
-export function AdminDashboardView() {
+export function AdminDashboardView({ currentElection, onCloseElection }: AdminDashboardViewProps) {
   const totalVotes = DATA.reduce((acc, curr) => acc + curr.votes, 0);
 
   return (
@@ -25,7 +31,7 @@ export function AdminDashboardView() {
         <div className="flex items-center gap-3">
           <div className="bg-secondary/10 text-secondary border border-secondary/20 px-4 py-2 rounded-full flex items-center gap-2 text-xs font-black tracking-widest uppercase">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            Live Status: Active
+            Live Status: {currentElection ? `${currentElection.title} • ${currentElection.status}` : "Active"}
           </div>
         </div>
       </div>
@@ -130,9 +136,9 @@ export function AdminDashboardView() {
                 <PlayCircle size={20} />
                 Start Election
               </Button>
-              <Button className="flex-1 min-w-[200px] h-14 font-bold bg-error text-white gap-3">
+              <Button className="flex-1 min-w-[200px] h-14 font-bold bg-error text-white gap-3" onClick={onCloseElection} disabled={!currentElection || currentElection?.status === 'Closed'}>
                 <StopCircle size={20} />
-                End Election
+                Close Current Election
               </Button>
               <Button variant="outline" className="flex-1 min-w-[200px] h-14 font-bold gap-3">
                 <RotateCcw size={20} />

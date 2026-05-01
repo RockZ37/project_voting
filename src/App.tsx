@@ -68,6 +68,15 @@ export default function App() {
   const handleCastVote = React.useCallback(() => {
     if (!currentElection) return;
 
+    if (currentElection.status === "Closed") {
+      addNotification({
+        title: "Election Closed",
+        message: `Voting for ${currentElection.title} has ended and is no longer accepting votes.`,
+        tone: "warning",
+      });
+      return;
+    }
+
     if (votedElectionIds[currentElection.id]) {
       addNotification({
         title: "Vote Already Cast",
@@ -99,6 +108,28 @@ export default function App() {
     setCurrentView(AppView.SUCCESS);
   }, [addNotification, currentElection, selectedCandidate?.name, votedElectionIds]);
 
+  const closeCurrentElection = React.useCallback(() => {
+    if (!currentElection) {
+      addNotification({
+        title: "No Election Selected",
+        message: `Please select an election before attempting to close it.`,
+        tone: "warning",
+      });
+      return;
+    }
+
+    setCurrentElection((current) => {
+      if (!current) return current;
+      return { ...current, status: "Closed" };
+    });
+
+    addNotification({
+      title: "Election Closed",
+      message: `${currentElection.title} has been marked as Closed. Results are finalized.`,
+      tone: "success",
+    });
+  }, [addNotification, currentElection]);
+
   const handleLogin = (admin: boolean = false, studentId: string = "") => {
     setIsAdmin(admin);
     setIndexNumber(studentId);
@@ -123,6 +154,14 @@ export default function App() {
         return (
           <VerifyIdentityView 
             indexNumber={indexNumber}
+            onVerify={() => {
+              addNotification({
+                title: "Administrator Verified",
+                message: `Administrator biometric verification successful. Access granted.`,
+                tone: "success",
+              });
+              setCurrentView(AppView.ADMIN_DASHBOARD);
+            }}
             onVerifyWithStudent={(student) => {
               setVerifiedStudent(student);
               addNotification({
@@ -504,7 +543,12 @@ export default function App() {
             </BallotPageLayout>
           );
       case AppView.ADMIN_DASHBOARD:
-        return <AdminDashboardView />;
+        return (
+          <AdminDashboardView
+            currentElection={currentElection}
+            onCloseElection={closeCurrentElection}
+          />
+        );
       case AppView.ADMIN_REGISTRY:
         return <AdminRegistryView />;
       case AppView.ADMIN_LOGS:
