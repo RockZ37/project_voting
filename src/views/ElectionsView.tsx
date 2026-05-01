@@ -25,7 +25,8 @@ const ELECTIONS: Election[] = [
         party: "Academic Progressive",
         description: "Expert in curriculum innovation and student welfare",
         photoUrl: "https://picsum.photos/seed/elena-cooper/200/200",
-        platform: ["Education", "Innovation", "Inclusion"]
+        platform: ["Education", "Innovation", "Inclusion"],
+        voteCount: 1500
       },
       {
         id: "2",
@@ -33,7 +34,8 @@ const ELECTIONS: Election[] = [
         party: "Traditional Values",
         description: "Focused on academic excellence and institutional stability",
         photoUrl: "https://picsum.photos/seed/robert-hayes/200/200",
-        platform: ["Excellence", "Stability", "Tradition"]
+        platform: ["Excellence", "Stability", "Tradition"],
+        voteCount: 1200
       },
       {
         id: "3",
@@ -41,7 +43,8 @@ const ELECTIONS: Election[] = [
         party: "Independent Reformer",
         description: "Advocating for modern campus facilities and student voice",
         photoUrl: "https://picsum.photos/seed/amara-okafor/200/200",
-        platform: ["Facilities", "Transparency", "Student Voice"]
+        platform: ["Facilities", "Transparency", "Student Voice"],
+        voteCount: 756
       }
     ]
   },
@@ -59,7 +62,8 @@ const ELECTIONS: Election[] = [
         party: "Academic Progressive",
         description: "Senior faculty with strong administrative experience",
         photoUrl: "https://picsum.photos/seed/james-mitchell/200/200",
-        platform: ["Administration", "Resources", "Support"]
+        platform: ["Administration", "Resources", "Support"],
+        voteCount: 1600
       },
       {
         id: "5",
@@ -67,7 +71,8 @@ const ELECTIONS: Election[] = [
         party: "Independent Reformer",
         description: "Advocate for student support services and diversity",
         photoUrl: "https://picsum.photos/seed/susan-khan/200/200",
-        platform: ["Support", "Diversity", "Wellbeing"]
+        platform: ["Support", "Diversity", "Wellbeing"],
+        voteCount: 1387
       }
     ]
   },
@@ -85,7 +90,8 @@ const ELECTIONS: Election[] = [
         party: "Student Voice",
         description: "Dedicated to student rights and campus improvements",
         photoUrl: "https://picsum.photos/seed/aisha-mohammed/200/200",
-        platform: ["Rights", "Facilities", "Activities"]
+        platform: ["Rights", "Facilities", "Activities"],
+        voteCount: 3200
       },
       {
         id: "7",
@@ -93,7 +99,8 @@ const ELECTIONS: Election[] = [
         party: "Campus Action",
         description: "Focused on budgeting and event organization",
         photoUrl: "https://picsum.photos/seed/david-chen/200/200",
-        platform: ["Budget", "Events", "Community"]
+        platform: ["Budget", "Events", "Community"],
+        voteCount: 2034
       }
     ]
   },
@@ -111,7 +118,8 @@ const ELECTIONS: Election[] = [
         party: "Faculty First",
         description: "Committed to faculty welfare and research support",
         photoUrl: "https://picsum.photos/seed/michael-johnson/200/200",
-        platform: ["Welfare", "Research", "Development"]
+        platform: ["Welfare", "Research", "Development"],
+        voteCount: 0
       }
     ]
   },

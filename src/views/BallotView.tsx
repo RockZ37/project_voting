@@ -21,7 +21,8 @@ const CANDIDATES: Candidate[] = [
     party: "Progressive Union",
     description: "Advocating for digital infrastructure, sustainable energy transitions, and educational reform.",
     photoUrl: "https://picsum.photos/seed/elena/200/200",
-    platform: ["Infrastructure", "Sustainability", "Education"]
+    platform: ["Infrastructure", "Sustainability", "Education"],
+    voteCount: 0
   },
   {
     id: "2",
@@ -29,7 +30,8 @@ const CANDIDATES: Candidate[] = [
     party: "Heritage Alliance",
     description: "Focused on fiscal responsibility, traditional industry support, and national security strength.",
     photoUrl: "https://picsum.photos/seed/marcus/200/200",
-    platform: ["Security", "Economy", "Tradition"]
+    platform: ["Security", "Economy", "Tradition"],
+    voteCount: 0
   },
   {
     id: "3",
@@ -37,7 +39,8 @@ const CANDIDATES: Candidate[] = [
     party: "Independent Frontier",
     description: "Championing grassroots governance, local business incentives, and healthcare transparency.",
     photoUrl: "https://picsum.photos/seed/sarah/200/200",
-    platform: ["Healthcare", "Local", "Transparency"]
+    platform: ["Healthcare", "Local", "Transparency"],
+    voteCount: 0
   }
 ];
 

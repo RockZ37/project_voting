@@ -82,9 +82,13 @@ export default function App() {
       [currentElection.id]: true,
     }));
 
-    setCurrentElection((current) =>
-      current ? { ...current, voteCount: current.voteCount + 1 } : current,
-    );
+    setCurrentElection((current) => {
+      if (!current) return current;
+      const updatedCandidates = current.candidates.map((c) =>
+        c.id === selectedCandidate?.id ? { ...c, voteCount: (c.voteCount || 0) + 1 } : c
+      );
+      return { ...current, voteCount: current.voteCount + 1, candidates: updatedCandidates };
+    });
     setLiveVoteCount((count) => count + 1);
 
     addNotification({
@@ -375,35 +379,108 @@ export default function App() {
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-secondary">Election Results</p>
                   <h1 className="text-4xl font-black tracking-tight text-on-surface">{currentElection.title}</h1>
                   <p className="text-on-surface-variant max-w-2xl leading-relaxed">
-                    The result summary for this university election is displayed below.
+                      The result summary for this university election is displayed below for every candidate.
                   </p>
                 </header>
+                {/* compute totals and winners */}
+                {(() => {
+                  const totalCandidateVotes = currentElection.candidates.reduce((s, c) => s + (c.voteCount || 0), 0);
+                  const totalVotes = Math.max(currentElection.voteCount || 0, totalCandidateVotes);
+                  const maxVotes = currentElection.candidates.length ? Math.max(...currentElection.candidates.map(c => c.voteCount || 0)) : 0;
+                  const winners = currentElection.candidates.filter(c => (c.voteCount || 0) === maxVotes && maxVotes > 0);
+
+                  return (
+                    <div className="space-y-4">
+                      {currentElection.status === "Closed" && winners.length > 0 && (
+                        <Card className="p-4 bg-white/80 border border-outline-variant/20">
+                          <p className="text-sm text-on-surface-variant">Winner{winners.length > 1 ? "s" : ""}</p>
+                          <div className="flex items-center gap-3 mt-2">
+                            {winners.map((w) => (
+                              <div key={w.id} className="flex items-center gap-3">
+                                <img src={w.photoUrl} alt={w.name} className="w-12 h-12 rounded-md object-cover border" />
+                                <div>
+                                  <div className="font-bold text-on-surface">{w.name}</div>
+                                  <div className="text-sm text-on-surface-variant">{(w.voteCount || 0).toLocaleString()} votes</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </Card>
+                      )}
+                      <div className="text-sm text-on-surface-variant">Total votes counted: <span className="font-bold text-secondary">{totalVotes.toLocaleString()}</span></div>
+                    </div>
+                  );
+                })()}
 
                 <Card className="p-8 sm:p-10 border-2 border-secondary/20 bg-surface-container-low space-y-6">
-                  <div className="flex flex-col gap-2">
-                    <span className="text-xs font-black uppercase tracking-[0.2em] text-on-surface-variant">Recorded Ballot</span>
-                    <h2 className="text-2xl sm:text-3xl font-black text-on-surface">
-                      {selectedCandidate?.name ?? "Your ballot was recorded"}
-                    </h2>
-                    <p className="text-sm text-on-surface-variant">
-                      {selectedCandidate?.party ?? currentElection.category}
-                    </p>
-                  </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="rounded-2xl bg-white/70 p-4 border border-outline-variant/30">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant">Election</p>
+                        <p className="mt-2 text-sm font-bold text-on-surface">{currentElection.title}</p>
+                      </div>
+                      <div className="rounded-2xl bg-white/70 p-4 border border-outline-variant/30">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant">Votes Cast</p>
+                        <p className="mt-2 text-sm font-bold text-secondary">{currentElection.voteCount.toLocaleString()}</p>
+                      </div>
+                      <div className="rounded-2xl bg-white/70 p-4 border border-outline-variant/30">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant">Candidates</p>
+                        <p className="mt-2 text-sm font-bold text-on-surface">{currentElection.candidates.length}</p>
+                      </div>
+                    </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="rounded-2xl bg-white/70 p-4 border border-outline-variant/30">
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant">Election</p>
-                      <p className="mt-2 text-sm font-bold text-on-surface">{currentElection.title}</p>
+                      <div className="space-y-3 pt-2">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant">Candidate Results</p>
+                      {(() => {
+                        const totalCandidateVotes = currentElection.candidates.reduce((s, c) => s + (c.voteCount || 0), 0);
+                        const totalVotes = Math.max(currentElection.voteCount || 0, totalCandidateVotes);
+
+                        return (
+                          <div className="grid grid-cols-1 gap-3">
+                            {currentElection.candidates.map((candidate) => {
+                              const isRecordedChoice = candidate.name === selectedCandidate?.name;
+                              const votes = candidate.voteCount || 0;
+                              const percent = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
+
+                              return (
+                                <div
+                                  key={candidate.id}
+                                  className={`rounded-2xl border p-4 sm:p-5 flex flex-col sm:flex-row gap-4 items-start ${
+                                    isRecordedChoice ? "border-secondary bg-secondary/5" : "border-outline-variant/30 bg-white/60"
+                                  }`}
+                                >
+                                  <div className="w-16 h-16 rounded-xl overflow-hidden border border-outline-variant/30 shrink-0 bg-white">
+                                    <img
+                                      src={candidate.photoUrl}
+                                      alt={candidate.name}
+                                      className="w-full h-full object-cover"
+                                      referrerPolicy="no-referrer"
+                                    />
+                                  </div>
+
+                                  <div className="flex-1 space-y-1">
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                                      <h3 className="text-lg font-bold text-on-surface">{candidate.name}</h3>
+                                      {isRecordedChoice && (
+                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-secondary">
+                                          Recorded ballot
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-sm font-semibold text-on-surface-variant">{candidate.party}</p>
+                                    <p className="text-sm text-on-surface-variant leading-relaxed">{candidate.description}</p>
+                                  </div>
+
+                                  <div className="sm:w-36 flex-shrink-0 flex flex-col items-end gap-1">
+                                    <div className="text-sm font-bold text-on-surface">{votes.toLocaleString()}</div>
+                                    <div className="text-xs text-on-surface-variant">{percent}%</div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
                     </div>
-                    <div className="rounded-2xl bg-white/70 p-4 border border-outline-variant/30">
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant">Votes Cast</p>
-                      <p className="mt-2 text-sm font-bold text-secondary">{currentElection.voteCount.toLocaleString()}</p>
-                    </div>
-                    <div className="rounded-2xl bg-white/70 p-4 border border-outline-variant/30">
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant">Status</p>
-                      <p className="mt-2 text-sm font-bold text-on-surface">{currentElection.status}</p>
-                    </div>
-                  </div>
 
                   <div className="pt-4 border-t border-outline-variant/20 flex flex-col sm:flex-row gap-4">
                     <Button className="flex-1" onClick={() => setCurrentView(AppView.ELECTION_DETAIL)}>

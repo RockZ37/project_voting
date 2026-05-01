@@ -20,6 +20,7 @@ export interface Candidate {
   description: string;
   photoUrl: string;
   platform: string[];
+  voteCount?: number;
 }
 
 export type ElectionStatus = "Open" | "Upcoming" | "Closed";

@@ -58,14 +58,29 @@ export function BallotSidebar({ voteCount, currentElection, selectedCandidateNam
           {showResults && (
             <SidebarSection title="Election Results">
               <Widget>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <div>
                     <p className="text-xs font-black uppercase tracking-[0.2em] text-on-surface-variant pb-1">
                       Result
                     </p>
                     <p className="text-sm font-bold text-on-surface leading-tight">
-                      {selectedCandidateName ? `${selectedCandidateName} was recorded` : "Your ballot was recorded"}
+                      {currentElection.candidates.length} candidates included in this election
                     </p>
+                  </div>
+                  <div className="space-y-2">
+                    {currentElection.candidates.map((candidate) => {
+                      const isRecordedChoice = candidate.name === selectedCandidateName;
+
+                      return (
+                        <div
+                          key={candidate.id}
+                          className={`rounded-xl border px-3 py-2 ${isRecordedChoice ? "border-secondary bg-secondary/5" : "border-outline-variant/30 bg-white/60"}`}
+                        >
+                          <p className="text-sm font-bold text-on-surface">{candidate.name}</p>
+                          <p className="text-xs text-on-surface-variant">{candidate.party}</p>
+                        </div>
+                      );
+                    })}
                   </div>
                   <div className="pt-2 border-t border-outline-variant/30 flex items-center justify-between">
                     <span className="text-xs text-on-surface-variant">Updated votes</span>
