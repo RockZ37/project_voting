@@ -16,6 +16,7 @@ import { BallotView } from "./views/BallotView";
 import { AdminDashboardView } from "./views/AdminDashboardView";
 import { AdminRegistryView } from "./views/AdminRegistryView";
 import { AdminLogsView } from "./views/AdminLogsView";
+import AdminCreateElectionView from "./views/AdminCreateElectionView";
 import AdminPageLayout from "./components/layout/AdminPageLayout";
 import { BallotPageLayout } from "./components/layout/BallotPageLayout";
 import { motion, AnimatePresence } from "motion/react";
@@ -570,7 +571,7 @@ export default function App() {
           );
       case AppView.ADMIN_DASHBOARD:
         return (
-          <AdminPageLayout currentElection={currentElection} elections={elections}>
+          <AdminPageLayout currentView={currentView} onNavigate={(v) => setCurrentView(v)} onCreateElection={() => setCurrentView(AppView.ADMIN_CREATE)} currentElection={currentElection} elections={elections}>
             <AdminDashboardView
               currentElection={currentElection}
               onCloseElection={closeCurrentElection}
@@ -583,14 +584,26 @@ export default function App() {
         );
       case AppView.ADMIN_REGISTRY:
         return (
-          <AdminPageLayout currentElection={currentElection} elections={elections}>
+          <AdminPageLayout currentView={currentView} onNavigate={(v) => setCurrentView(v)} onCreateElection={() => setCurrentView(AppView.ADMIN_CREATE)} currentElection={currentElection} elections={elections}>
             <AdminRegistryView />
           </AdminPageLayout>
         );
       case AppView.ADMIN_LOGS:
         return (
-          <AdminPageLayout currentElection={currentElection} elections={elections}>
+          <AdminPageLayout currentView={currentView} onNavigate={(v) => setCurrentView(v)} onCreateElection={() => setCurrentView(AppView.ADMIN_CREATE)} currentElection={currentElection} elections={elections}>
             <AdminLogsView />
+          </AdminPageLayout>
+        );
+      case AppView.ADMIN_CREATE:
+        return (
+          <AdminPageLayout currentView={currentView} onNavigate={(v) => setCurrentView(v)} onCreateElection={() => setCurrentView(AppView.ADMIN_CREATE)} currentElection={currentElection} elections={elections}>
+            <AdminCreateElectionView
+              onCreate={(election) => {
+                createElection(election);
+                setCurrentView(AppView.ADMIN_DASHBOARD);
+              }}
+              onCancel={() => setCurrentView(AppView.ADMIN_DASHBOARD)}
+            />
           </AdminPageLayout>
         );
       default:
