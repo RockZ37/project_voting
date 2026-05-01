@@ -87,7 +87,9 @@ export function ElectionDetailView({ election, student, onSelect, onBack, hasVot
                   className={cn(
                     "p-5 sm:p-8 transition-all group relative hover:shadow-lg",
                     hasVoted ? "cursor-not-allowed opacity-70" : "cursor-pointer",
-                    selectedId === candidate.id ? "border-3 border-secondary bg-surface-container-low shadow-md scale-[1.01]" : "hover:border-outline"
+                    selectedId === candidate.id
+                      ? "border-3 border-secondary bg-surface-container-low shadow-md scale-[1.01]"
+                      : "hover:border-outline"
                   )}
                   onClick={() => handleSelect(candidate)}
                 >

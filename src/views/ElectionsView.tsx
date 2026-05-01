@@ -70,6 +70,12 @@ export function ElectionsView({ elections, onSelectElection, onViewChange }: Ele
                   )}
                 >
                   <div className="space-y-4">
+                    {election.bannerUrl && (
+                      <div className="overflow-hidden rounded-2xl border border-outline-variant/20 bg-surface-container">
+                        <img src={election.bannerUrl} alt={`${election.title} banner`} className="w-full h-40 object-cover" />
+                      </div>
+                    )}
+
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <h3 className="text-lg sm:text-xl font-bold text-on-surface mb-1">

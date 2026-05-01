@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Card } from "@/src/components/ui/Card";
 import { Button } from "@/src/components/ui/Button";
-import { Election, Candidate, AppView } from "@/src/types";
+import { Election, Candidate } from "@/src/types";
 
 interface Props {
   onCreate: (election: Election) => void;
@@ -15,8 +15,7 @@ export function AdminCreateElectionView({ onCreate, onCancel }: Props) {
   const [startAt, setStartAt] = React.useState<string | null>(null);
   const [endAt, setEndAt] = React.useState<string | null>(null);
   const [department, setDepartment] = React.useState("");
-  const [ballotType, setBallotType] = React.useState<"single" | "multi">("single");
-  const [maxVotes, setMaxVotes] = React.useState<number>(1);
+  const [bannerPreview, setBannerPreview] = React.useState<string>("");
 
   const [candidates, setCandidates] = React.useState<Candidate[]>([]);
   const [candName, setCandName] = React.useState("");
@@ -46,6 +45,14 @@ export function AdminCreateElectionView({ onCreate, onCancel }: Props) {
 
   const removeCandidate = (id: string) => setCandidates((c) => c.filter((x) => x.id !== id));
 
+  const handleBannerChange = async (file: File | null) => {
+    if (!file) {
+      setBannerPreview("");
+      return;
+    }
+    setBannerPreview(await fileToDataUrl(file));
+  };
+
   const submit = () => {
     if (!title.trim()) return;
     const now = new Date();
@@ -59,6 +66,9 @@ export function AdminCreateElectionView({ onCreate, onCancel }: Props) {
       category: category || "General",
       description: description || "",
       status,
+      ballotType: "single",
+      maxVotesPerVoter: 1,
+      bannerUrl: bannerPreview || undefined,
       voteCount: 0,
       candidates,
     };
@@ -68,17 +78,29 @@ export function AdminCreateElectionView({ onCreate, onCancel }: Props) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-black">Create Election</h1>
-        <div className="text-sm text-on-surface-variant">Only institute students allowed to vote</div>
+    <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6 sm:py-8 space-y-6">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <h1 className="text-2xl sm:text-3xl font-black">Create Election</h1>
+        <div className="text-sm text-on-surface-variant max-w-md sm:text-right">
+          Only institute students allowed to vote
+        </div>
       </div>
 
-      <Card className="p-6 space-y-4">
-        <div className="grid grid-cols-1 gap-3">
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Election Title" className="p-3 border rounded" />
-          <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Category (e.g., General)" className="p-3 border rounded" />
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description (optional)" className="p-3 border rounded" />
+      <Card className="p-4 sm:p-6 space-y-4">
+        <div className="grid grid-cols-1 gap-4">
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Election Title" className="p-3 border rounded w-full" />
+          <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Category (e.g., General)" className="p-3 border rounded w-full" />
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description (optional)" className="p-3 border rounded w-full min-h-28" />
+
+          <div className="space-y-2">
+            <span className="text-xs font-black text-on-surface-variant uppercase">Election Banner</span>
+            <input type="file" accept="image/*" onChange={(e) => void handleBannerChange(e.target.files?.[0] ?? null)} className="w-full p-2 border rounded bg-white" />
+            {bannerPreview && (
+              <div className="rounded-2xl overflow-hidden border border-outline-variant/30 bg-surface-container">
+                <img src={bannerPreview} alt="Election banner preview" className="w-full h-48 object-cover" />
+              </div>
+            )}
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label className="flex flex-col">
@@ -92,32 +114,18 @@ export function AdminCreateElectionView({ onCreate, onCancel }: Props) {
           </div>
 
           <input value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="Department or Course (comma-separated)" className="p-3 border rounded" />
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
-            <label className="flex flex-col">
-              <span className="text-xs font-black text-on-surface-variant uppercase">Ballot Type</span>
-              <select value={ballotType} onChange={(e) => setBallotType(e.target.value as any)} className="p-2 border rounded">
-                <option value="single">Single-choice</option>
-                <option value="multi">Multi-choice</option>
-              </select>
-            </label>
-            <label className="flex flex-col">
-              <span className="text-xs font-black text-on-surface-variant uppercase">Max Votes Per Voter</span>
-              <input type="number" min={1} value={maxVotes} onChange={(e) => setMaxVotes(Number(e.target.value) || 1)} className="p-2 border rounded" />
-            </label>
-          </div>
         </div>
       </Card>
 
-      <div className="mt-6">
-        <h2 className="text-xl font-black mb-3">Candidates</h2>
-        <Card className="p-4 mb-4">
+      <div className="space-y-3">
+        <h2 className="text-xl font-black">Candidates</h2>
+        <Card className="p-4 sm:p-5 mb-2">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <input value={candName} onChange={(e) => setCandName(e.target.value)} placeholder="Candidate name" className="p-2 border rounded" />
-            <input value={candDept} onChange={(e) => setCandDept(e.target.value)} placeholder="Department / Course" className="p-2 border rounded" />
-            <input type="file" accept="image/*" onChange={(e) => setCandPhotoFile(e.target.files?.[0] ?? null)} className="p-2" />
+            <input value={candName} onChange={(e) => setCandName(e.target.value)} placeholder="Candidate name" className="p-2 border rounded w-full" />
+            <input value={candDept} onChange={(e) => setCandDept(e.target.value)} placeholder="Department / Course" className="p-2 border rounded w-full" />
+            <input type="file" accept="image/*" onChange={(e) => setCandPhotoFile(e.target.files?.[0] ?? null)} className="w-full p-2" />
           </div>
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex flex-col sm:flex-row gap-2">
             <Button onClick={addCandidate}>Add Candidate</Button>
             <Button variant="outline" onClick={() => { setCandName(""); setCandDept(""); setCandPhotoFile(null); }}>Clear</Button>
           </div>
@@ -125,15 +133,15 @@ export function AdminCreateElectionView({ onCreate, onCancel }: Props) {
 
         <div className="space-y-2">
           {candidates.map((c) => (
-            <Card key={c.id} className="p-3 flex items-center justify-between">
-              <div className="flex items-center gap-3">
+            <Card key={c.id} className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 <img src={c.photoUrl} className="w-12 h-12 object-cover rounded-md" />
-                <div>
+                <div className="min-w-0">
                   <div className="font-bold">{c.name}</div>
-                  <div className="text-sm text-on-surface-variant">{c.party}</div>
+                  <div className="text-sm text-on-surface-variant truncate">{c.party}</div>
                 </div>
               </div>
-              <div>
+              <div className="self-start sm:self-auto">
                 <Button variant="ghost" onClick={() => removeCandidate(c.id)}>Remove</Button>
               </div>
             </Card>
@@ -141,9 +149,9 @@ export function AdminCreateElectionView({ onCreate, onCancel }: Props) {
         </div>
       </div>
 
-      <div className="mt-8 flex gap-3">
-        <Button onClick={submit}>Create Election</Button>
-        <Button variant="outline" onClick={onCancel}>Cancel</Button>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <Button onClick={submit} className="w-full sm:w-auto">Create Election</Button>
+        <Button variant="outline" onClick={onCancel} className="w-full sm:w-auto">Cancel</Button>
       </div>
     </div>
   );

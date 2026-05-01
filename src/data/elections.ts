@@ -7,6 +7,9 @@ export const SAMPLE_ELECTIONS: Election[] = [
     category: "University Leadership",
     description: "Vote for the next President of the University",
     status: "Open",
+    ballotType: "single",
+    maxVotesPerVoter: 1,
+    bannerUrl: "https://picsum.photos/seed/presidential-banner/1200/400",
     voteCount: 3456,
     candidates: [
       {
@@ -44,6 +47,9 @@ export const SAMPLE_ELECTIONS: Election[] = [
     category: "University Leadership",
     description: "Vote for the next Vice President of the University",
     status: "Open",
+    ballotType: "single",
+    maxVotesPerVoter: 1,
+    bannerUrl: "https://picsum.photos/seed/vp-banner/1200/400",
     voteCount: 2987,
     candidates: [
       {
@@ -72,6 +78,9 @@ export const SAMPLE_ELECTIONS: Election[] = [
     category: "Student Government",
     description: "Vote for the Student Senate President",
     status: "Open",
+    ballotType: "single",
+    maxVotesPerVoter: 1,
+    bannerUrl: "https://picsum.photos/seed/senate-banner/1200/400",
     voteCount: 5234,
     candidates: [
       {
@@ -100,6 +109,9 @@ export const SAMPLE_ELECTIONS: Election[] = [
     category: "Faculty Government",
     description: "Vote for the Faculty Senate President",
     status: "Upcoming",
+    ballotType: "single",
+    maxVotesPerVoter: 1,
+    bannerUrl: "https://picsum.photos/seed/faculty-banner/1200/400",
     voteCount: 0,
     candidates: [
       {
@@ -119,6 +131,9 @@ export const SAMPLE_ELECTIONS: Election[] = [
     category: "National Election",
     description: "Vote in the national general election",
     status: "Closed",
+    ballotType: "single",
+    maxVotesPerVoter: 1,
+    bannerUrl: "https://picsum.photos/seed/general-banner/1200/400",
     voteCount: 8765,
     candidates: [],
   },

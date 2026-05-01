@@ -43,6 +43,9 @@ export function AdminDashboardView({ currentElection, onCloseElection, onCreateE
       category: newElectionCategory || "Uncategorized",
       description: newElectionDescription || "",
       status: "Upcoming" as const,
+      ballotType: "single" as const,
+      maxVotesPerVoter: 1,
+      bannerUrl: "",
       voteCount: 0,
       candidates: [],
     };

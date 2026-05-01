@@ -39,7 +39,6 @@ export default function App() {
   const [notifications, setNotifications] = React.useState<NotificationItem[]>([]);
   const notificationTimersRef = React.useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const hasVotedForCurrentElection = currentElection ? Boolean(votedElectionIds[currentElection.id]) : false;
-
   React.useEffect(() => {
     return () => {
       Object.values(notificationTimersRef.current).forEach((timerId) => clearTimeout(timerId));
@@ -73,6 +72,15 @@ export default function App() {
   const handleCastVote = React.useCallback(() => {
     if (!currentElection) return;
 
+    if (!selectedCandidate) {
+      addNotification({
+        title: "No Selection Made",
+        message: `Please choose at least one candidate before submitting your ballot.`,
+        tone: "warning",
+      });
+      return;
+    }
+
     if (currentElection.status === "Closed") {
       addNotification({
         title: "Election Closed",
@@ -98,8 +106,8 @@ export default function App() {
 
     setCurrentElection((current) => {
       if (!current) return current;
-      const updatedCandidates = current.candidates.map((c) =>
-        c.id === selectedCandidate?.id ? { ...c, voteCount: (c.voteCount || 0) + 1 } : c
+      const updatedCandidates = current.candidates.map((candidate) =>
+        candidate.id === selectedCandidate.id ? { ...candidate, voteCount: (candidate.voteCount || 0) + 1 } : candidate
       );
       return { ...current, voteCount: current.voteCount + 1, candidates: updatedCandidates };
     });
@@ -107,11 +115,11 @@ export default function App() {
 
     addNotification({
       title: "Vote Cast Successfully",
-      message: `${selectedCandidate?.name ?? "Your selection"} has been submitted successfully for ${currentElection.title}.`,
+      message: `${selectedCandidate.name} has been submitted successfully for ${currentElection.title}.`,
       tone: "success",
     });
     setCurrentView(AppView.SUCCESS);
-  }, [addNotification, currentElection, selectedCandidate?.name, votedElectionIds]);
+  }, [addNotification, currentElection, selectedCandidate, votedElectionIds]);
 
   const createElection = React.useCallback((election: Election) => {
     setElections((curr) => [election, ...curr]);
@@ -300,7 +308,7 @@ export default function App() {
                   <Lock size={12} className="fill-current" />
                   Step 3 of 4: Final Review
                 </div>
-                <h1 className="text-4xl font-black tracking-tight">Review Your Ballot</h1>
+                  <h1 className="text-4xl font-black tracking-tight">Review Your Ballot</h1>
                 <p className="text-on-surface-variant max-w-sm mx-auto leading-relaxed">
                   Please double-check your selection before finalizing your vote. This action cannot be undone.
                 </p>
@@ -311,8 +319,10 @@ export default function App() {
                   <Landmark size={120} />
                 </div>
                 
-                <div className="space-y-2 relative z-10">
-                  <p className="text-[10px] font-black text-secondary uppercase tracking-[0.2em]">Your Selection</p>
+                <div className="space-y-4 relative z-10">
+                  <p className="text-[10px] font-black text-secondary uppercase tracking-[0.2em]">
+                    Your Selection
+                  </p>
                   <div className="flex items-center gap-6">
                     <img 
                       src={selectedCandidate?.photoUrl} 
@@ -503,7 +513,7 @@ export default function App() {
                         return (
                           <div className="grid grid-cols-1 gap-3">
                             {currentElection.candidates.map((candidate) => {
-                              const isRecordedChoice = candidate.name === selectedCandidate?.name;
+                              const isRecordedChoice = candidate.id === selectedCandidate?.id;
                               const votes = candidate.voteCount || 0;
                               const percent = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
 
@@ -597,7 +607,7 @@ export default function App() {
       case AppView.ADMIN_CREATE:
         return (
           <AdminPageLayout currentView={currentView} onNavigate={(v) => setCurrentView(v)} onCreateElection={() => setCurrentView(AppView.ADMIN_CREATE)} currentElection={currentElection} elections={elections}>
-            <AdminCreateElectionView
+              <AdminCreateElectionView
               onCreate={(election) => {
                 createElection(election);
                 setCurrentView(AppView.ADMIN_DASHBOARD);
