@@ -154,7 +154,7 @@ export default function App() {
         ) : null;
       case AppView.ELECTIONS:
         return (
-          <BallotPageLayout voteCount={liveVoteCount}>
+          <BallotPageLayout voteCount={liveVoteCount} onViewResults={() => setCurrentView(AppView.RESULTS)}>
             <ElectionsView
               onSelectElection={(election) => {
                 setCurrentElection(election);
@@ -183,9 +183,10 @@ export default function App() {
               setCurrentView(AppView.REVIEW);
             }}
             onBack={() => setCurrentView(AppView.ELECTIONS)}
+            onViewResults={() => setCurrentView(AppView.RESULTS)}
           />
         ) : (
-          <BallotPageLayout voteCount={liveVoteCount}>
+            <BallotPageLayout voteCount={liveVoteCount} onViewResults={() => setCurrentView(AppView.RESULTS)}>
             <div className="text-center py-12">
               <p className="text-on-surface-variant">No election selected</p>
               <Button 
@@ -203,6 +204,7 @@ export default function App() {
             student={verifiedStudent}
             voteCount={liveVoteCount}
             currentElection={currentElection}
+            onViewResults={() => setCurrentView(AppView.RESULTS)}
             onSelect={(candidate) => {
               setSelectedCandidate(candidate);
               addNotification({
@@ -220,6 +222,7 @@ export default function App() {
             voteCount={currentElection?.voteCount || liveVoteCount}
             currentElection={currentElection}
             onViewElections={() => setCurrentView(AppView.ELECTIONS)}
+            onViewResults={() => setCurrentView(AppView.RESULTS)}
           >
             <div className="max-w-2xl mx-auto py-20 px-6 space-y-12">
               <div className="text-center space-y-4">
@@ -301,11 +304,12 @@ export default function App() {
             voteCount={currentElection?.voteCount || liveVoteCount}
             currentElection={currentElection}
             selectedCandidateName={selectedCandidate?.name}
-            showResults
+            showResults={false}
             onViewElections={() => {
               setSelectedCandidate(null);
               setCurrentView(AppView.ELECTIONS);
             }}
+            onViewResults={() => setCurrentView(AppView.RESULTS)}
           >
             <div className="flex flex-col items-center justify-center min-h-[calc(100vh-64px)] p-6">
               <motion.div 
@@ -356,6 +360,72 @@ export default function App() {
             </div>
           </BallotPageLayout>
         );
+        case AppView.RESULTS:
+          return currentElection ? (
+            <BallotPageLayout
+              voteCount={currentElection.voteCount}
+              currentElection={currentElection}
+              selectedCandidateName={selectedCandidate?.name}
+              showResults
+              onViewElections={() => setCurrentView(AppView.ELECTIONS)}
+              onViewResults={() => setCurrentView(AppView.RESULTS)}
+            >
+              <div className="max-w-3xl mx-auto py-16 px-6 space-y-8">
+                <header className="space-y-3">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-secondary">Election Results</p>
+                  <h1 className="text-4xl font-black tracking-tight text-on-surface">{currentElection.title}</h1>
+                  <p className="text-on-surface-variant max-w-2xl leading-relaxed">
+                    The result summary for this university election is displayed below.
+                  </p>
+                </header>
+
+                <Card className="p-8 sm:p-10 border-2 border-secondary/20 bg-surface-container-low space-y-6">
+                  <div className="flex flex-col gap-2">
+                    <span className="text-xs font-black uppercase tracking-[0.2em] text-on-surface-variant">Recorded Ballot</span>
+                    <h2 className="text-2xl sm:text-3xl font-black text-on-surface">
+                      {selectedCandidate?.name ?? "Your ballot was recorded"}
+                    </h2>
+                    <p className="text-sm text-on-surface-variant">
+                      {selectedCandidate?.party ?? currentElection.category}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="rounded-2xl bg-white/70 p-4 border border-outline-variant/30">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant">Election</p>
+                      <p className="mt-2 text-sm font-bold text-on-surface">{currentElection.title}</p>
+                    </div>
+                    <div className="rounded-2xl bg-white/70 p-4 border border-outline-variant/30">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant">Votes Cast</p>
+                      <p className="mt-2 text-sm font-bold text-secondary">{currentElection.voteCount.toLocaleString()}</p>
+                    </div>
+                    <div className="rounded-2xl bg-white/70 p-4 border border-outline-variant/30">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant">Status</p>
+                      <p className="mt-2 text-sm font-bold text-on-surface">{currentElection.status}</p>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-outline-variant/20 flex flex-col sm:flex-row gap-4">
+                    <Button className="flex-1" onClick={() => setCurrentView(AppView.ELECTION_DETAIL)}>
+                      Back to Ballot Page
+                    </Button>
+                    <Button variant="outline" className="flex-1" onClick={() => setCurrentView(AppView.ELECTIONS)}>
+                      Back to Elections
+                    </Button>
+                  </div>
+                </Card>
+              </div>
+            </BallotPageLayout>
+          ) : (
+            <BallotPageLayout voteCount={liveVoteCount} onViewResults={() => setCurrentView(AppView.RESULTS)}>
+              <div className="text-center py-12">
+                <p className="text-on-surface-variant">No election selected</p>
+                <Button className="mt-4" onClick={() => setCurrentView(AppView.ELECTIONS)}>
+                  Back to Elections
+                </Button>
+              </div>
+            </BallotPageLayout>
+          );
       case AppView.ADMIN_DASHBOARD:
         return <AdminDashboardView />;
       case AppView.ADMIN_REGISTRY:

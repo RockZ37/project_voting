@@ -11,6 +11,7 @@ interface BallotViewProps {
   onSelect: (candidate: Candidate) => void;
   voteCount: number;
   currentElection?: Election | null;
+  onViewResults?: () => void;
 }
 
 const CANDIDATES: Candidate[] = [
@@ -40,7 +41,7 @@ const CANDIDATES: Candidate[] = [
   }
 ];
 
-export function BallotView({ student, onSelect, voteCount, currentElection }: BallotViewProps) {
+export function BallotView({ student, onSelect, voteCount, currentElection, onViewResults }: BallotViewProps) {
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [modalOpen, setModalOpen] = React.useState(false);
   const [modalCandidate, setModalCandidate] = React.useState<Candidate | null>(null);
@@ -60,7 +61,7 @@ export function BallotView({ student, onSelect, voteCount, currentElection }: Ba
   const selectedCandidate = CANDIDATES.find(c => c.id === selectedId);
 
   return (
-    <BallotPageLayout voteCount={voteCount} currentElection={currentElection}>
+    <BallotPageLayout voteCount={voteCount} currentElection={currentElection} onViewResults={onViewResults}>
       <header className="space-y-2">
         <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-on-surface">General Election: Presidential</h1>
         <p className="text-on-surface-variant text-base leading-relaxed">

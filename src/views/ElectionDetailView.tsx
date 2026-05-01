@@ -13,16 +13,17 @@ interface ElectionDetailViewProps {
   onSelect: (candidate: Candidate) => void;
   onBack: () => void;
   hasVoted?: boolean;
+  onViewResults?: () => void;
 }
 
-export function ElectionDetailView({ election, student, onSelect, onBack, hasVoted = false }: ElectionDetailViewProps) {
+export function ElectionDetailView({ election, student, onSelect, onBack, hasVoted = false, onViewResults }: ElectionDetailViewProps) {
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [modalOpen, setModalOpen] = React.useState(false);
   const [modalCandidate, setModalCandidate] = React.useState<Candidate | null>(null);
 
   if (!election) {
     return (
-      <BallotPageLayout voteCount={0}>
+      <BallotPageLayout voteCount={0} onViewResults={onViewResults}>
         <div className="text-center py-12">
           <p className="text-on-surface-variant">No election selected</p>
         </div>
@@ -46,7 +47,7 @@ export function ElectionDetailView({ election, student, onSelect, onBack, hasVot
   const selectedCandidate = election.candidates.find(c => c.id === selectedId);
 
   return (
-    <BallotPageLayout voteCount={election.voteCount}>
+    <BallotPageLayout voteCount={election.voteCount} onViewResults={onViewResults}>
       <div className="space-y-8">
         {hasVoted && (
           <Card className="p-5 border-2 border-secondary bg-secondary/5">

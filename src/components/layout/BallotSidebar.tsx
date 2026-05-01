@@ -9,9 +9,10 @@ interface BallotSidebarProps {
   selectedCandidateName?: string | null;
   showResults?: boolean;
   onViewElections?: () => void;
+  onViewResults?: () => void;
 }
 
-export function BallotSidebar({ voteCount, currentElection, selectedCandidateName, showResults = false, onViewElections }: BallotSidebarProps) {
+export function BallotSidebar({ voteCount, currentElection, selectedCandidateName, showResults = false, onViewElections, onViewResults }: BallotSidebarProps) {
   return (
     <Sidebar>
       {currentElection ? (
@@ -74,6 +75,12 @@ export function BallotSidebar({ voteCount, currentElection, selectedCandidateNam
               </Widget>
             </SidebarSection>
           )}
+
+          <SidebarSection title="Actions">
+            <Button onClick={onViewResults} className="w-full">
+              View Results
+            </Button>
+          </SidebarSection>
         </>
       ) : (
         <>
@@ -89,9 +96,14 @@ export function BallotSidebar({ voteCount, currentElection, selectedCandidateNam
                     <p className="text-xs text-on-surface-variant">Select a university election to review candidates.</p>
                   </div>
                 </div>
-                <Button onClick={onViewElections} className="w-full">
-                  Browse All Elections
-                </Button>
+                <div className="space-y-2">
+                  <Button onClick={onViewElections} className="w-full">
+                    Browse All Elections
+                  </Button>
+                  <Button onClick={onViewResults} variant="outline" className="w-full">
+                    View Results
+                  </Button>
+                </div>
               </div>
             </Widget>
           </SidebarSection>
