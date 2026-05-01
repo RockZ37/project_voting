@@ -6,10 +6,12 @@ import { Button } from "@/src/components/ui/Button";
 interface BallotSidebarProps {
   voteCount: number;
   currentElection?: Election | null;
+  selectedCandidateName?: string | null;
+  showResults?: boolean;
   onViewElections?: () => void;
 }
 
-export function BallotSidebar({ voteCount, currentElection, onViewElections }: BallotSidebarProps) {
+export function BallotSidebar({ voteCount, currentElection, selectedCandidateName, showResults = false, onViewElections }: BallotSidebarProps) {
   return (
     <Sidebar>
       {currentElection ? (
@@ -51,6 +53,27 @@ export function BallotSidebar({ voteCount, currentElection, onViewElections }: B
               </div>
             </Widget>
           </SidebarSection>
+
+          {showResults && (
+            <SidebarSection title="Election Results">
+              <Widget>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-on-surface-variant pb-1">
+                      Result
+                    </p>
+                    <p className="text-sm font-bold text-on-surface leading-tight">
+                      {selectedCandidateName ? `${selectedCandidateName} was recorded` : "Your ballot was recorded"}
+                    </p>
+                  </div>
+                  <div className="pt-2 border-t border-outline-variant/30 flex items-center justify-between">
+                    <span className="text-xs text-on-surface-variant">Updated votes</span>
+                    <span className="text-sm font-black text-secondary">{voteCount.toLocaleString()}</span>
+                  </div>
+                </div>
+              </Widget>
+            </SidebarSection>
+          )}
         </>
       ) : (
         <>

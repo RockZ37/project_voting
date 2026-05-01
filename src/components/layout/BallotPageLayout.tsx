@@ -7,10 +7,12 @@ interface BallotPageLayoutProps {
   voteCount: number;
   children: React.ReactNode;
   currentElection?: Election | null;
+  selectedCandidateName?: string | null;
+  showResults?: boolean;
   onViewElections?: () => void;
 }
 
-export function BallotPageLayout({ voteCount, children, currentElection, onViewElections }: BallotPageLayoutProps) {
+export function BallotPageLayout({ voteCount, children, currentElection, selectedCandidateName, showResults, onViewElections }: BallotPageLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
 
   React.useEffect(() => {
@@ -70,6 +72,8 @@ export function BallotPageLayout({ voteCount, children, currentElection, onViewE
           <BallotSidebar 
             voteCount={voteCount}
             currentElection={currentElection}
+            selectedCandidateName={selectedCandidateName}
+            showResults={showResults}
             onViewElections={() => {
               onViewElections?.();
               setSidebarOpen(false);
@@ -87,6 +91,8 @@ export function BallotPageLayout({ voteCount, children, currentElection, onViewE
               <BallotSidebar 
                 voteCount={voteCount}
                 currentElection={currentElection}
+                selectedCandidateName={selectedCandidateName}
+                showResults={showResults}
                 onViewElections={onViewElections}
               />
             </div>

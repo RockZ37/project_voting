@@ -19,7 +19,7 @@ import { BallotPageLayout } from "./components/layout/BallotPageLayout";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "./components/ui/Button";
 import { Card } from "./components/ui/Card";
-import { CheckCircle2, Lock, ShieldCheck, Printer, Send, Landmark } from "lucide-react";
+import { CheckCircle2, Lock, ShieldCheck, Send, Landmark } from "lucide-react";
 import { NotificationItem } from "./types";
 
 export default function App() {
@@ -88,8 +88,8 @@ export default function App() {
     setLiveVoteCount((count) => count + 1);
 
     addNotification({
-      title: "Vote Cast",
-      message: `${selectedCandidate?.name ?? "Your selection"} has been submitted successfully.`,
+      title: "Vote Cast Successfully",
+      message: `${selectedCandidate?.name ?? "Your selection"} has been submitted successfully for ${currentElection.title}.`,
       tone: "success",
     });
     setCurrentView(AppView.SUCCESS);
@@ -300,6 +300,8 @@ export default function App() {
           <BallotPageLayout 
             voteCount={currentElection?.voteCount || liveVoteCount}
             currentElection={currentElection}
+            selectedCandidateName={selectedCandidate?.name}
+            showResults
             onViewElections={() => {
               setSelectedCandidate(null);
               setCurrentView(AppView.ELECTIONS);
@@ -338,32 +340,16 @@ export default function App() {
                           CV-2024-88A2-E40B-991Q-91L7
                        </p>
                      </div>
-                     <div className="pt-6 border-t border-surface-container flex flex-col md:flex-row gap-4">
-                        <Button variant="outline" className="flex-1 gap-2 h-12 font-bold">
-                          <Printer size={18} />
-                          Print Receipt
-                        </Button>
-                        <Button variant="outline" className="flex-1 gap-2 h-12 font-bold">
-                          <ShieldCheck size={18} />
-                          View Blockchain Log
-                        </Button>
-                     </div>
                   </div>
                 </Card>
 
                 <div className="pt-6">
-                  <Button 
-                    variant="ghost" 
-                    size="lg" 
-                    className="font-bold text-secondary uppercase tracking-widest text-[11px]"
-                    onClick={() => {
-                      setSelectedCandidate(null);
-                      setVerifiedStudent(null);
-                      setCurrentElection(null);
-                      setCurrentView(AppView.AUTH);
-                    }}
+                  <Button
+                    size="lg"
+                    className="w-full font-bold h-14"
+                    onClick={() => setCurrentView(AppView.ELECTION_DETAIL)}
                   >
-                    Return to Home
+                    Back to Ballot Page
                   </Button>
                 </div>
               </motion.div>
