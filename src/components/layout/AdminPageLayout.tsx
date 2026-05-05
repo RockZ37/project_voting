@@ -8,6 +8,7 @@ interface AdminPageLayoutProps {
   currentView?: AppView;
   onNavigate?: (view: AppView) => void;
   onCreateElection?: () => void;
+  onCreateCandidate?: () => void;
   onAddCandidate?: () => void;
   children: React.ReactNode;
   currentElection?: Election | null;
@@ -18,6 +19,7 @@ export function AdminPageLayout({
   currentView,
   onNavigate,
   onCreateElection,
+  onCreateCandidate,
   onAddCandidate,
   children,
 }: AdminPageLayoutProps) {
@@ -45,6 +47,8 @@ export function AdminPageLayout({
       [AppView.ADMIN_DASHBOARD]: 'dashboard',
       [AppView.ADMIN_REGISTRY]: 'registry',
       [AppView.ADMIN_LOGS]: 'logs',
+      [AppView.ADMIN_CREATE]: 'create-election',
+      [AppView.ADMIN_CREATE_CANDIDATE]: 'create-candidate',
     } as Record<AppView, string>;
     window.dispatchEvent(new CustomEvent('admin-nav', { detail: mapping[view] }));
   };
@@ -86,6 +90,8 @@ export function AdminPageLayout({
             <Button className="w-full text-left" onClick={() => { doNavigate(AppView.ADMIN_DASHBOARD); setSidebarOpen(false); }}>Dashboard</Button>
             <Button className="w-full text-left" onClick={() => { doNavigate(AppView.ADMIN_REGISTRY); setSidebarOpen(false); }}>Registry</Button>
             <Button className="w-full text-left" onClick={() => { doNavigate(AppView.ADMIN_LOGS); setSidebarOpen(false); }}>Logs</Button>
+            <Button className="w-full text-left" onClick={() => { doNavigate(AppView.ADMIN_CREATE); setSidebarOpen(false); }}>Create Election</Button>
+            <Button className="w-full text-left" onClick={() => { doNavigate(AppView.ADMIN_CREATE_CANDIDATE); setSidebarOpen(false); }}>Create Candidate</Button>
           </div>
         </div>
       </aside>
@@ -113,8 +119,11 @@ export function AdminPageLayout({
             >
               Logs
             </Button>
-            <Button className="text-left" onClick={() => { if (onCreateElection) onCreateElection(); else window.dispatchEvent(new CustomEvent('admin-action', { detail: 'create-election' })); }}>
+            <Button className="text-left" onClick={() => { if (onCreateElection) onCreateElection(); else doNavigate(AppView.ADMIN_CREATE); }}>
               Create Election
+            </Button>
+            <Button className="text-left" onClick={() => { if (onCreateCandidate) onCreateCandidate(); else doNavigate(AppView.ADMIN_CREATE_CANDIDATE); }}>
+              Create Candidate
             </Button>
           </div>
         </Card>
