@@ -194,6 +194,7 @@ This is the recommended mode for phone testing because browser camera access usu
 
 - [Architecture](docs/ARCHITECTURE.md)
 - [Components](docs/COMPONENTS.md)
+- [Backend Phases](docs/BACKEND_PHASES.md)
 - [Development Guide](docs/DEVELOPMENT.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
 
