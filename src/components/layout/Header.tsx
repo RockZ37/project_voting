@@ -25,6 +25,15 @@ export function Header({
   const [showNotifications, setShowNotifications] = React.useState(false);
   const [now, setNow] = React.useState(() => Date.now());
   const unreadCount = notifications.filter((notification) => !notification.read).length;
+  const profile = student ?? (isAdmin ? {
+    id: "ADMIN-001",
+    name: "Administrator",
+    email: "admin@civicvote.gov",
+    photoUrl: "https://picsum.photos/seed/admin-profile/200/200",
+    department: "Election Administration",
+    registrationDate: new Date().toISOString().slice(0, 10),
+    status: "Active" as const,
+  } : null);
 
   React.useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -156,22 +165,22 @@ export function Header({
                   <ChevronDown className="w-4 h-4" />
                 </button>
 
-                {showProfile && student && !isAdmin && (
+                  {showProfile && profile && (
                   <div className="absolute right-0 top-10 w-[280px] sm:w-[320px] rounded-2xl border border-outline-variant bg-white shadow-2xl overflow-hidden z-50">
                     <div className="p-4 bg-surface-container-low border-b border-outline-variant/30">
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant mb-2">Profile</p>
+                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant mb-2">{isAdmin ? "Admin Profile" : "Profile"}</p>
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-full overflow-hidden bg-surface-container border border-outline-variant/30 shrink-0">
                           <img
-                            src={student.photoUrl}
-                            alt={student.name}
+                              src={profile.photoUrl}
+                              alt={profile.name}
                             className="w-full h-full object-cover"
                             referrerPolicy="no-referrer"
                           />
                         </div>
                         <div className="min-w-0">
-                          <p className="font-bold text-on-surface truncate">{student.name}</p>
-                          <p className="text-xs text-on-surface-variant truncate">{student.department}</p>
+                            <p className="font-bold text-on-surface truncate">{profile.name}</p>
+                            <p className="text-xs text-on-surface-variant truncate">{profile.department}</p>
                         </div>
                       </div>
                     </div>
@@ -179,17 +188,17 @@ export function Header({
                     <div className="p-4 space-y-3">
                       <div>
                         <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-1">HTU Index Number</p>
-                        <p className="font-mono text-sm font-bold text-on-surface break-all">{student.id}</p>
+                          <p className="font-mono text-sm font-bold text-on-surface break-all">{profile.id}</p>
                       </div>
                       <div>
                         <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-1">Status</p>
                         <p className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-green-100 text-green-700">
-                          {student.status}
+                            {profile.status}
                         </p>
                       </div>
                       <div>
                         <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-1">Email</p>
-                        <p className="text-sm font-medium text-on-surface break-all">{student.email}</p>
+                          <p className="text-sm font-medium text-on-surface break-all">{profile.email}</p>
                       </div>
                     </div>
                   </div>
