@@ -319,7 +319,7 @@ This phase replaces the registry demo behavior with real stored voter data.
 
 #### Acceptance criteria
 
-- admins can upload a CSV and create or update voter entries
+- admins can upload a CSV 
 - invalid CSV files return useful validation errors
 - registry search returns matching records consistently
 
