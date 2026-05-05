@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ChevronDown, ChevronRight, Circle } from "lucide-react";
 import { Card } from "@/src/components/ui/Card";
 import { Button } from "@/src/components/ui/Button";
 import { AppView, Election } from "@/src/types";
@@ -22,8 +22,10 @@ export function AdminPageLayout({
   onCreateCandidate,
   onAddCandidate,
   children,
+  elections = [],
 }: AdminPageLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const [expandedElectionIds, setExpandedElectionIds] = React.useState<Record<string, boolean>>({});
 
   React.useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -52,6 +54,18 @@ export function AdminPageLayout({
     } as Record<AppView, string>;
     window.dispatchEvent(new CustomEvent('admin-nav', { detail: mapping[view] }));
   };
+
+  const toggleElection = (electionId: string) => {
+    setExpandedElectionIds((current) => ({
+      ...current,
+      [electionId]: !current[electionId],
+    }));
+  };
+
+  const isElectionExpanded = (electionId: string) => {
+    return expandedElectionIds[electionId] ?? true;
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-6 py-10">
       <div className="flex flex-col lg:flex-row gap-8 lg:items-start">
@@ -93,6 +107,51 @@ export function AdminPageLayout({
             <Button className="w-full text-left" onClick={() => { doNavigate(AppView.ADMIN_CREATE); setSidebarOpen(false); }}>Create Election</Button>
             <Button className="w-full text-left" onClick={() => { doNavigate(AppView.ADMIN_CREATE_CANDIDATE); setSidebarOpen(false); }}>Create Candidate</Button>
           </div>
+
+          <div className="pt-2 border-t border-outline-variant/30 space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-black uppercase text-on-surface-variant">Elections</h4>
+              <span className="text-[10px] font-black uppercase tracking-widest text-secondary">{elections.length}</span>
+            </div>
+            <div className="space-y-2 max-h-[28rem] overflow-y-auto pr-1">
+              {elections.length ? elections.map((election) => {
+                const expanded = isElectionExpanded(election.id);
+
+                return (
+                  <div key={election.id} className="rounded-xl border border-outline-variant/30 bg-white/60 overflow-hidden">
+                    <button
+                      type="button"
+                      className="w-full flex items-start justify-between gap-3 p-3 text-left hover:bg-surface-container transition-colors"
+                      onClick={() => toggleElection(election.id)}
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-black text-on-surface truncate">{election.title}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">{election.status} · {election.candidates.length} candidates</p>
+                      </div>
+                      {expanded ? <ChevronDown size={16} className="shrink-0 text-on-surface-variant mt-0.5" /> : <ChevronRight size={16} className="shrink-0 text-on-surface-variant mt-0.5" />}
+                    </button>
+                    {expanded ? (
+                      <div className="px-3 pb-3 space-y-1.5">
+                        {election.candidates.length ? election.candidates.map((candidate) => (
+                          <div key={candidate.id} className="flex items-center gap-2 rounded-lg bg-surface-container-low px-2.5 py-2">
+                            <Circle size={8} className="shrink-0 text-secondary fill-current" />
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-on-surface truncate">{candidate.name}</p>
+                              <p className="text-[10px] uppercase tracking-widest text-on-surface-variant truncate">{candidate.party}</p>
+                            </div>
+                          </div>
+                        )) : (
+                          <p className="px-1 text-[11px] text-on-surface-variant">No candidates yet.</p>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              }) : (
+                <p className="text-xs text-on-surface-variant">No elections created yet.</p>
+              )}
+            </div>
+          </div>
         </div>
       </aside>
 
@@ -125,6 +184,51 @@ export function AdminPageLayout({
             <Button className="text-left" onClick={() => { if (onCreateCandidate) onCreateCandidate(); else doNavigate(AppView.ADMIN_CREATE_CANDIDATE); }}>
               Create Candidate
             </Button>
+          </div>
+
+          <div className="pt-2 border-t border-outline-variant/30 space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-black uppercase text-on-surface-variant">Elections</h4>
+              <span className="text-[10px] font-black uppercase tracking-widest text-secondary">{elections.length}</span>
+            </div>
+            <div className="space-y-2 max-h-[28rem] overflow-y-auto pr-1">
+              {elections.length ? elections.map((election) => {
+                const expanded = isElectionExpanded(election.id);
+
+                return (
+                  <div key={election.id} className="rounded-xl border border-outline-variant/30 bg-white/60 overflow-hidden">
+                    <button
+                      type="button"
+                      className="w-full flex items-start justify-between gap-3 p-3 text-left hover:bg-surface-container transition-colors"
+                      onClick={() => toggleElection(election.id)}
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-black text-on-surface truncate">{election.title}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">{election.status} · {election.candidates.length} candidates</p>
+                      </div>
+                      {expanded ? <ChevronDown size={16} className="shrink-0 text-on-surface-variant mt-0.5" /> : <ChevronRight size={16} className="shrink-0 text-on-surface-variant mt-0.5" />}
+                    </button>
+                    {expanded ? (
+                      <div className="px-3 pb-3 space-y-1.5">
+                        {election.candidates.length ? election.candidates.map((candidate) => (
+                          <div key={candidate.id} className="flex items-center gap-2 rounded-lg bg-surface-container-low px-2.5 py-2">
+                            <Circle size={8} className="shrink-0 text-secondary fill-current" />
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-on-surface truncate">{candidate.name}</p>
+                              <p className="text-[10px] uppercase tracking-widest text-on-surface-variant truncate">{candidate.party}</p>
+                            </div>
+                          </div>
+                        )) : (
+                          <p className="px-1 text-[11px] text-on-surface-variant">No candidates yet.</p>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              }) : (
+                <p className="text-xs text-on-surface-variant">No elections created yet.</p>
+              )}
+            </div>
           </div>
         </Card>
       </aside>

@@ -124,13 +124,10 @@ export function AdminRegistryView() {
     <div className="max-w-7xl mx-auto px-6 py-10 space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-black tracking-tight text-on-surface">Voter Registry</h1>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" className="gap-2 font-bold" onClick={handleUploadClick} type="button">
-            <Upload size={18} />
-            Upload CSV
-          </Button>
-          <Button className="font-bold" type="button">Register New Voter</Button>
-        </div>
+        <Button variant="outline" className="gap-2 font-bold" onClick={handleUploadClick} type="button">
+          <Upload size={18} />
+          Upload CSV
+        </Button>
       </div>
 
       <Card className="p-4 bg-surface-container-low space-y-3">
