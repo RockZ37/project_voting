@@ -11,6 +11,7 @@ The backend should provide:
 - voter registry storage and CSV import support
 - ballot submission and vote counting
 - identity verification support
+- student identity and ID card record storage
 - audit logs and traceability
 - API endpoints that match the existing frontend screens
 
@@ -59,6 +60,31 @@ Fields:
 - photoUrl
 - department or course
 - external index number if needed
+
+### StudentIdentity
+
+Represents the student ID card data used by authentication and verification.
+
+Fields:
+
+- id
+- indexNumber
+- name
+- course
+- profilePhotoUrl
+- idCardFrontUrl
+- idCardBackUrl
+- issueDate
+- validUntil
+- status
+- createdAt
+- updatedAt
+
+Notes:
+
+- The front of the card should carry the student name, index number, course, and profile picture.
+- The back of the card should carry the issue date and valid until date.
+- If the backend stores only one student record per person, the StudentIdentity model can be merged into User or Voter, but the same fields should still exist.
 
 ### Election
 
@@ -134,7 +160,7 @@ This phase creates the base infrastructure that all frontend screens will use.
 
 - initialize the server project
 - choose database and ORM
-- define shared models and migrations
+- define shared models and migrations, including student identity records
 - set up configuration and environment variables
 - add API response conventions
 - implement health check and base error handling
@@ -142,7 +168,7 @@ This phase creates the base infrastructure that all frontend screens will use.
 #### Deliverables
 
 - backend project scaffold
-- database schema for users, voters, elections, candidates, votes, and logs
+- database schema for users, student identities, voters, elections, candidates, votes, and logs
 - basic `/health` endpoint
 - centralized validation and error responses
 
@@ -156,6 +182,7 @@ This phase creates the base infrastructure that all frontend screens will use.
 - server starts cleanly
 - database schema is created successfully
 - all core entities exist in the backend model
+- student identity fields match the ID card layout used by the frontend
 - validation and error handling are available
 
 ---
@@ -184,6 +211,7 @@ This phase connects the login and admin entry flow to the backend.
 - replaces local admin/student session assumptions
 - supports the current Auth screen and admin entry path
 - provides profile data for the header and session state
+- exposes student card details for verification and profile rendering
 
 #### Acceptance criteria
 
@@ -191,6 +219,39 @@ This phase connects the login and admin entry flow to the backend.
 - voter users can log in and receive a voter session
 - unauthorized requests are blocked correctly
 - frontend can display the current session identity
+- student identity payloads include name, index number, course, profile picture, issue date, and valid until date
+
+---
+
+### Phase 2.5: Student Identity and Verification Records
+
+This phase can be introduced alongside authentication or before the full verification flow if the student record shape needs to be established early.
+
+#### Scope
+
+- create and store student identity records
+- validate card issue and expiry dates
+- link student identity to login and verification
+- expose read-only student profile data for the header and account views
+
+#### Deliverables
+
+- `GET /students/:indexNumber`
+- `GET /students/me`
+- `POST /students`
+- `PATCH /students/:id`
+
+#### Frontend impact
+
+- the profile icon can render real student or admin identity data
+- the verification screen can confirm the student record before advancing
+- the header can show card-related fields without relying on local mock data
+
+#### Acceptance criteria
+
+- student records include the fields shown on the physical ID card
+- issue date and valid until date are validated server-side
+- the frontend can request the current student profile from the backend
 
 ---
 
