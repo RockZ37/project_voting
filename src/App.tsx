@@ -162,6 +162,7 @@ export default function App() {
       setElections((curr) => [created, ...curr]);
       setCurrentElection(created);
       addNotification({ title: "Election Created", message: `${created.title} has been created.`, tone: "success" });
+      await loadElections();
       await loadAdminData();
     } catch (error: any) {
       addNotification({ title: "Create Failed", message: error.message || "Could not create election.", tone: "warning" });
@@ -171,8 +172,11 @@ export default function App() {
   const addCandidate = React.useCallback(async (electionId: string, candidate: Candidate) => {
     try {
       const created = await api.addCandidate(electionId, candidate);
-      setElections((curr) => curr.map((e) => (e.id === electionId ? { ...e, candidates: [...e.candidates, created] } : e)));
-      setCurrentElection((curr) => (curr && curr.id === electionId ? { ...curr, candidates: [...curr.candidates, created] } : curr));
+      const refreshedElections = await api.getElections();
+      const refreshedTargetElection = refreshedElections.find((e) => e.id === electionId) || null;
+
+      setElections(refreshedElections);
+      setCurrentElection(refreshedTargetElection || refreshedElections[0] || null);
       addNotification({ title: "Candidate Added", message: `${created.name} has been added to the election.`, tone: "success" });
       await loadAdminData();
     } catch (error: any) {

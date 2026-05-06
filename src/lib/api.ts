@@ -6,6 +6,28 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
 type RequestOptions = RequestInit & { skipJson?: boolean };
 
+function extractErrorMessage(errorPayload: unknown, status: number, path: string): string {
+  if (!errorPayload || typeof errorPayload !== "object") {
+    return `Request failed (${status}) at ${path}`;
+  }
+
+  const payload = errorPayload as { error?: unknown; message?: unknown };
+  const candidate = payload.error ?? payload.message;
+
+  if (typeof candidate === "string" && candidate.trim()) {
+    return candidate;
+  }
+
+  if (candidate && typeof candidate === "object") {
+    const flat = JSON.stringify(candidate);
+    if (flat && flat !== "{}") {
+      return `Validation error: ${flat}`;
+    }
+  }
+
+  return `Request failed (${status}) at ${path}`;
+}
+
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     credentials: "include",
@@ -18,7 +40,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
   const data = options.skipJson ? null : await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error((data && (data.error as string)) || `Request failed: ${response.status}`);
+    throw new Error(extractErrorMessage(data, response.status, path));
   }
 
   return data as T;
@@ -81,6 +103,19 @@ function toVoter(row: any): Voter {
   };
 }
 
+function normalizePlatform(platform: Candidate["platform"] | undefined) {
+  if (!platform) return {};
+  if (!Array.isArray(platform)) return platform;
+
+  return platform.reduce<Record<string, string>>((acc, value, index) => {
+    const trimmed = String(value || "").trim();
+    if (trimmed) {
+      acc[`priority_${index + 1}`] = trimmed;
+    }
+    return acc;
+  }, {});
+}
+
 export const api = {
   async login(email: string, password: string) {
     const data = await request<{ user: SessionUser }>("/auth/login", {
@@ -133,7 +168,7 @@ export const api = {
         party: input.party,
         description: input.description,
         photoUrl: input.photoUrl,
-        platform: input.platform || [],
+        platform: normalizePlatform(input.platform),
       }),
     });
     return toCandidate(data.candidate);

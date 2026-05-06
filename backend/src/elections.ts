@@ -12,15 +12,15 @@ const ElectionCreate = z.object({
   status: z.string().default("draft"),
   ballotType: z.string().default("single"),
   maxVotesPerVoter: z.number().int().positive().optional(),
-  bannerUrl: z.string().url().optional(),
+  bannerUrl: z.union([z.string().url(), z.string().startsWith("data:image/")]).optional(),
 });
 
 const CandidateCreate = z.object({
   name: z.string().min(1),
   party: z.string().optional(),
   description: z.string().optional(),
-  photoUrl: z.string().url().optional(),
-  platform: z.record(z.string(), z.unknown()).optional(),
+  photoUrl: z.union([z.string().url(), z.string().startsWith("data:image/")]).optional(),
+  platform: z.union([z.array(z.string()), z.record(z.string(), z.unknown())]).optional(),
 });
 
 const ElectionPatch = ElectionCreate.partial();
