@@ -24,7 +24,7 @@ router.post("/", async (req, res) => {
   try {
     const insert = await query(
       `INSERT INTO student_identities (index_number, name, course, profile_photo_url, id_card_front_url, id_card_back_url, issue_date, valid_until)
-       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
       [indexNumber, name, course ?? null, profilePhotoUrl ?? null, idCardFrontUrl ?? null, idCardBackUrl ?? null, issueDate ?? null, validUntil ?? null]
     );
 

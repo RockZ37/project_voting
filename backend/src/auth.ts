@@ -45,8 +45,14 @@ router.get("/me", async (req, res) => {
   // optionally enrich with student identity if role is voter
   if (user.role === "voter") {
     try {
-      const r = await query("SELECT * FROM student_identities WHERE id = (SELECT student_identity_id FROM voters WHERE id = (SELECT id FROM voters WHERE id = (SELECT id FROM users WHERE id = $1) LIMIT 1) LIMIT 1)", [user.id]);
-      // note: this is a placeholder; linking between users and voters/student identities depends on your model
+      const r = await query(
+        `SELECT s.*
+         FROM student_identities s
+         JOIN voters v ON v.student_identity_id = s.id
+         WHERE v.user_id = $1
+         LIMIT 1`,
+        [user.id]
+      );
       const student = r.rows[0] ?? null;
       return res.json({ user: { ...user }, student });
     } catch (err) {

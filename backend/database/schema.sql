@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS student_identities (
 -- Voters (registry entries) -- can link to student identities
 CREATE TABLE IF NOT EXISTS voters (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID UNIQUE REFERENCES users(id) ON DELETE SET NULL,
   student_identity_id UUID REFERENCES student_identities(id) ON DELETE SET NULL,
   name TEXT NOT NULL,
   email TEXT,
@@ -82,6 +83,21 @@ CREATE TABLE IF NOT EXISTS votes (
   metadata JSONB
 );
 
+-- Verification sessions (face/ID/manual checks before casting)
+CREATE TABLE IF NOT EXISTS verification_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  voter_id UUID REFERENCES voters(id) ON DELETE CASCADE,
+  election_id UUID REFERENCES elections(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'pending',
+  started_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  expires_at TIMESTAMP WITH TIME ZONE,
+  completed_at TIMESTAMP WITH TIME ZONE,
+  method TEXT,
+  score NUMERIC,
+  notes TEXT,
+  metadata JSONB
+);
+
 -- Audit logs
 CREATE TABLE IF NOT EXISTS audit_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -99,6 +115,14 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 CREATE INDEX IF NOT EXISTS idx_student_index_number ON student_identities(index_number);
 CREATE INDEX IF NOT EXISTS idx_voter_email ON voters(email);
 CREATE INDEX IF NOT EXISTS idx_election_status ON elections(status);
+CREATE INDEX IF NOT EXISTS idx_votes_election_id ON votes(election_id);
+CREATE INDEX IF NOT EXISTS idx_votes_voter_id ON votes(voter_id);
+CREATE INDEX IF NOT EXISTS idx_verification_voter_election ON verification_sessions(voter_id, election_id);
+
+-- allow only one recorded vote per voter per election when voter_id exists
+CREATE UNIQUE INDEX IF NOT EXISTS uq_votes_election_voter
+ON votes (election_id, voter_id)
+WHERE voter_id IS NOT NULL;
 
 -- Note: gen_random_uuid() requires the pgcrypto or pgcrypto-like extension.
 -- Use: CREATE EXTENSION IF NOT EXISTS pgcrypto;

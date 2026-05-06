@@ -1,9 +1,12 @@
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 import { pool } from "./db";
 
 async function runMigrations() {
-  const file = path.resolve(__dirname, "../database/schema.sql");
+  const currentFile = fileURLToPath(import.meta.url);
+  const currentDir = path.dirname(currentFile);
+  const file = path.resolve(currentDir, "../database/schema.sql");
   const sql = fs.readFileSync(file, "utf8");
   try {
     await pool.query("BEGIN");

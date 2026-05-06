@@ -11,7 +11,7 @@ async function createAdmin() {
   const client = await pool.connect();
   try {
     const existing = await client.query("SELECT id FROM users WHERE email = $1", [email]);
-    if (existing.rowCount > 0) {
+    if ((existing.rowCount ?? 0) > 0) {
       console.log("Admin user already exists");
       return;
     }
