@@ -1,6 +1,7 @@
 import express from "express";
 import { z } from "zod";
 import { query } from "./db";
+import { generateId } from "./utils/id";
 
 const router = express.Router();
 
@@ -30,11 +31,12 @@ router.post("/", async (req, res) => {
   if (!parsed.success) return res.status(400).json({ error: parsed.error.format() });
   const { title, category, description, status, ballotType, maxVotesPerVoter, bannerUrl } = parsed.data;
   try {
+    const id = generateId();
     const r = await query(
-      `INSERT INTO elections (title, category, description, status, ballot_type, max_votes_per_voter, banner_url)
-       VALUES ($1,$2,$3,$4,$5,$6,$7)
+      `INSERT INTO elections (id, title, category, description, status, ballot_type, max_votes_per_voter, banner_url)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
        RETURNING *`,
-      [title, category ?? null, description ?? null, status, ballotType, maxVotesPerVoter ?? 1, bannerUrl ?? null]
+      [id, title, category ?? null, description ?? null, status, ballotType, maxVotesPerVoter ?? 1, bannerUrl ?? null]
     );
     res.status(201).json({ election: r.rows[0] });
   } catch (err) {
@@ -131,10 +133,11 @@ router.post("/:id/candidates", async (req, res) => {
     // ensure election exists
     const er = await query("SELECT id FROM elections WHERE id = $1", [id]);
     if (er.rowCount === 0) return res.status(404).json({ error: "Election not found" });
+    const candidateId = generateId();
     const r = await query(
-      `INSERT INTO candidates (election_id, name, party, description, photo_url, platform)
-       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-      [id, name, party ?? null, description ?? null, photoUrl ?? null, platform ?? null]
+      `INSERT INTO candidates (id, election_id, name, party, description, photo_url, platform)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+      [candidateId, id, name, party ?? null, description ?? null, photoUrl ?? null, platform ?? null]
     );
     res.status(201).json({ candidate: r.rows[0] });
   } catch (err) {

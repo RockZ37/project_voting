@@ -1,8 +1,9 @@
 import express from "express";
 import { z } from "zod";
-import { pool, query } from "./db";
+import { query, withTransaction, isSqliteMode } from "./db";
 import { requireAuth } from "./middleware/authz";
 import { logAuditEvent } from "./audit";
+import { generateId } from "./utils/id";
 
 const router = express.Router();
 
@@ -28,30 +29,34 @@ router.post("/start", async (req, res) => {
   if (!parsed.success) return res.status(400).json({ error: parsed.error.format() });
   const actor = req.session.user;
 
-  const client = await pool.connect();
   try {
-    await client.query("BEGIN");
     const electionId = parsed.data.electionId;
-
-    let voterId = parsed.data.voterId;
-    if (!voterId) {
-      const vr = await client.query("SELECT id FROM voters WHERE user_id = $1 LIMIT 1", [actor?.id]);
-      voterId = vr.rows[0]?.id;
-    }
-    if (!voterId) {
-      await client.query("ROLLBACK");
-      return res.status(400).json({ error: "No voter profile linked to user" });
-    }
-
-    const ttlMinutes = parsed.data.ttlMinutes ?? 15;
     const method = parsed.data.method ?? "manual";
-    const r = await client.query(
-      `INSERT INTO verification_sessions (voter_id, election_id, status, expires_at, method, metadata)
-       VALUES ($1,$2,'pending', now() + ($3::text || ' minutes')::interval, $4, $5)
-       RETURNING *`,
-      [voterId, electionId, ttlMinutes, method, parsed.data.metadata ?? null]
-    );
-    await client.query("COMMIT");
+    let voterId: string | undefined;
+
+    const r = await withTransaction(async (tx) => {
+      voterId = parsed.data.voterId;
+      if (!voterId) {
+        const vr = await tx("SELECT id FROM voters WHERE user_id = $1 LIMIT 1", [actor?.id]);
+        voterId = vr.rows[0]?.id;
+      }
+      if (!voterId) {
+        throw new Error("No voter profile linked to user");
+      }
+
+      const sessionId = generateId();
+      const ttlMinutes = parsed.data.ttlMinutes ?? 15;
+      const expiresExpr = isSqliteMode()
+        ? "datetime('now', '+' || $3 || ' minutes')"
+        : "now() + ($3::text || ' minutes')::interval";
+      const result = await tx(
+        `INSERT INTO verification_sessions (id, voter_id, election_id, status, expires_at, method, metadata)
+         VALUES ($1,$2,$3,'pending', ${expiresExpr}, $4, $5)
+         RETURNING *`,
+        [sessionId, voterId, electionId, ttlMinutes, method, parsed.data.metadata ?? null]
+      );
+      return result;
+    });
 
     await logAuditEvent({
       type: "verification.start",
@@ -65,12 +70,9 @@ router.post("/start", async (req, res) => {
 
     res.status(201).json({ session: r.rows[0] });
   } catch (err) {
-    await client.query("ROLLBACK");
     // eslint-disable-next-line no-console
     console.error(err);
     res.status(500).json({ error: "Server error" });
-  } finally {
-    client.release();
   }
 });
 

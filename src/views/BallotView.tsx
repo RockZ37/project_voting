@@ -14,40 +14,12 @@ interface BallotViewProps {
   onViewResults?: () => void;
 }
 
-const CANDIDATES: Candidate[] = [
-  {
-    id: "1",
-    name: "Dr. Elena Sterling",
-    party: "Progressive Union",
-    description: "Advocating for digital infrastructure, sustainable energy transitions, and educational reform.",
-    photoUrl: "https://picsum.photos/seed/elena/200/200",
-    platform: ["Infrastructure", "Sustainability", "Education"],
-    voteCount: 0
-  },
-  {
-    id: "2",
-    name: "Marcus Thorne",
-    party: "Heritage Alliance",
-    description: "Focused on fiscal responsibility, traditional industry support, and national security strength.",
-    photoUrl: "https://picsum.photos/seed/marcus/200/200",
-    platform: ["Security", "Economy", "Tradition"],
-    voteCount: 0
-  },
-  {
-    id: "3",
-    name: "Sarah Jenkins",
-    party: "Independent Frontier",
-    description: "Championing grassroots governance, local business incentives, and healthcare transparency.",
-    photoUrl: "https://picsum.photos/seed/sarah/200/200",
-    platform: ["Healthcare", "Local", "Transparency"],
-    voteCount: 0
-  }
-];
-
-export function BallotView({ student, onSelect, voteCount, currentElection, onViewResults }: BallotViewProps) {
+export function BallotView({ onSelect, voteCount, currentElection, onViewResults }: BallotViewProps) {
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [modalOpen, setModalOpen] = React.useState(false);
   const [modalCandidate, setModalCandidate] = React.useState<Candidate | null>(null);
+
+  const candidates = currentElection?.candidates || [];
 
   const handleSelect = (candidate: Candidate) => {
     setModalCandidate(candidate);
@@ -61,20 +33,28 @@ export function BallotView({ student, onSelect, voteCount, currentElection, onVi
     setModalCandidate(null);
   };
 
-  const selectedCandidate = CANDIDATES.find(c => c.id === selectedId);
+  if (!currentElection) {
+    return (
+      <BallotPageLayout voteCount={voteCount} currentElection={currentElection} onViewResults={onViewResults}>
+        <Card className="p-8 text-center bg-surface-container border-outline-variant/30">
+          <p className="text-on-surface-variant">No election selected.</p>
+        </Card>
+      </BallotPageLayout>
+    );
+  }
 
   return (
     <BallotPageLayout voteCount={voteCount} currentElection={currentElection} onViewResults={onViewResults}>
       <header className="space-y-2">
-        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-on-surface">General Election: Presidential</h1>
+        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-on-surface">{currentElection.title}</h1>
         <p className="text-on-surface-variant text-base leading-relaxed">
           Please select one candidate from the list below. You can review your choice before final submission.
         </p>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        {CANDIDATES.map((candidate) => (
-          <Card 
+        {candidates.map((candidate) => (
+          <Card
             key={candidate.id}
             className={cn(
               "p-5 sm:p-8 transition-all cursor-pointer group relative hover:shadow-lg",
@@ -84,28 +64,15 @@ export function BallotView({ student, onSelect, voteCount, currentElection, onVi
           >
             <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
               <div className="w-full h-44 sm:w-24 sm:h-24 rounded-lg overflow-hidden border border-outline-variant/30 shrink-0">
-                <img 
-                  src={candidate.photoUrl} 
-                  alt={candidate.name} 
-                  className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all"
-                  referrerPolicy="no-referrer"
-                />
+                <img src={candidate.photoUrl} alt={candidate.name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all" referrerPolicy="no-referrer" />
               </div>
               <div className="flex-1 space-y-2">
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className={cn(
-                      "text-[10px] font-black uppercase tracking-widest",
-                      selectedId === candidate.id ? "text-secondary" : "text-on-surface-variant"
-                    )}>
-                      {candidate.party}
-                    </p>
+                    <p className={cn("text-[10px] font-black uppercase tracking-widest", selectedId === candidate.id ? "text-secondary" : "text-on-surface-variant")}>{candidate.party}</p>
                     <h3 className="text-lg sm:text-xl font-bold text-on-surface leading-tight">{candidate.name}</h3>
                   </div>
-                  <div className={cn(
-                    "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors",
-                    selectedId === candidate.id ? "border-secondary" : "border-outline-variant"
-                  )}>
+                  <div className={cn("w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors", selectedId === candidate.id ? "border-secondary" : "border-outline-variant")}>
                     {selectedId === candidate.id && <div className="w-3 h-3 bg-secondary rounded-full" />}
                   </div>
                 </div>
@@ -125,6 +92,12 @@ export function BallotView({ student, onSelect, voteCount, currentElection, onVi
         ))}
       </div>
 
+      {candidates.length === 0 ? (
+        <Card className="p-8 text-center bg-surface-container border-outline-variant/30">
+          <p className="text-on-surface-variant">No candidates available for this election.</p>
+        </Card>
+      ) : null}
+
       <Card className="p-6 bg-surface-container border-outline-variant/30">
         <div className="flex gap-4">
           <div className="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center shrink-0">
@@ -138,13 +111,8 @@ export function BallotView({ student, onSelect, voteCount, currentElection, onVi
           </div>
         </div>
       </Card>
-      {/* Candidate review modal */}
-      <CandidateReviewModal
-        candidate={modalCandidate}
-        open={modalOpen}
-        onClose={() => { setModalOpen(false); setModalCandidate(null); }}
-        onConfirm={handleConfirmSelection}
-      />
+
+      <CandidateReviewModal candidate={modalCandidate} open={modalOpen} onClose={() => { setModalOpen(false); setModalCandidate(null); }} onConfirm={handleConfirmSelection} />
     </BallotPageLayout>
   );
 }

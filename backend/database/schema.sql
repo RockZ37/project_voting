@@ -1,5 +1,7 @@
 -- CivicVote initial schema (PostgreSQL)
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- Users (login identities)
 CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

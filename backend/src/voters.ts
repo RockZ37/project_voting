@@ -1,9 +1,10 @@
 import express from "express";
 import { z } from "zod";
-import { pool, query } from "./db";
+import { query, withTransaction } from "./db";
 import { parseCsv } from "./utils/csv";
 import { logAuditEvent } from "./audit";
 import { requireAuth, requireRole } from "./middleware/authz";
+import { generateId } from "./utils/id";
 
 const router = express.Router();
 
@@ -57,11 +58,13 @@ router.post("/", requireRole("admin"), async (req, res) => {
 
   const data = parsed.data;
   try {
+    const id = generateId();
     const r = await query(
-      `INSERT INTO voters (name, email, registration_date, status, photo_url, department, student_identity_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7)
+      `INSERT INTO voters (id, name, email, registration_date, status, photo_url, department, student_identity_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
        RETURNING *`,
       [
+        id,
         data.name,
         data.email ?? null,
         data.registrationDate ?? null,
@@ -97,29 +100,27 @@ router.post("/import-csv", requireRole("admin"), async (req, res) => {
   const rows = parseCsv(csvText);
   if (rows.length === 0) return res.status(400).json({ error: "No CSV rows found" });
 
-  const client = await pool.connect();
   try {
-    await client.query("BEGIN");
     let created = 0;
+    await withTransaction(async (tx) => {
+      for (const row of rows) {
+        const name = row.name || row.full_name || "";
+        if (!name) continue;
 
-    for (const row of rows) {
-      const name = row.name || row.full_name || "";
-      if (!name) continue;
+        const id = generateId();
+        const email = row.email || null;
+        const department = row.department || row.course || null;
+        const status = row.status || "active";
+        const registrationDate = row.registration_date || row.registrationdate || null;
 
-      const email = row.email || null;
-      const department = row.department || row.course || null;
-      const status = row.status || "active";
-      const registrationDate = row.registration_date || row.registrationdate || null;
-
-      await client.query(
-        `INSERT INTO voters (name, email, department, status, registration_date)
-         VALUES ($1,$2,$3,$4,$5)`,
-        [name, email, department, status, registrationDate]
-      );
-      created += 1;
-    }
-
-    await client.query("COMMIT");
+        await tx(
+          `INSERT INTO voters (id, name, email, department, status, registration_date)
+           VALUES ($1,$2,$3,$4,$5,$6)`,
+          [id, name, email, department, status, registrationDate]
+        );
+        created += 1;
+      }
+    });
 
     await logAuditEvent({
       type: "voter.import_csv",
@@ -132,12 +133,9 @@ router.post("/import-csv", requireRole("admin"), async (req, res) => {
 
     res.status(201).json({ ok: true, imported: created, totalRows: rows.length });
   } catch (err) {
-    await client.query("ROLLBACK");
     // eslint-disable-next-line no-console
     console.error(err);
     res.status(500).json({ error: "Server error" });
-  } finally {
-    client.release();
   }
 });
 

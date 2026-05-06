@@ -1,16 +1,10 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import * as React from "react";
-import { AppView, Candidate, Student, Election } from "./types";
+import { AppView, Candidate, Student, Election, NotificationItem, SessionUser, AuditLog, Voter } from "./types";
 import { Header } from "./components/layout/Header";
 import { AuthView } from "./views/AuthView";
 import { VerifyIdentityView } from "./views/VerifyIdentityView";
 import { VerificationConfirmView } from "./views/VerificationConfirmView";
 import { ElectionsView } from "./views/ElectionsView";
-import SAMPLE_ELECTIONS from "./data/elections";
 import { ElectionDetailView } from "./views/ElectionDetailView";
 import { BallotView } from "./views/BallotView";
 import { AdminDashboardView } from "./views/AdminDashboardView";
@@ -24,41 +18,31 @@ import { motion, AnimatePresence } from "motion/react";
 import { Button } from "./components/ui/Button";
 import { Card } from "./components/ui/Card";
 import { CheckCircle2, Lock, ShieldCheck, Send, Landmark } from "lucide-react";
-import { NotificationItem } from "./types";
+import { api } from "./lib/api";
 
 export default function App() {
   const [currentView, setCurrentView] = React.useState<AppView>(AppView.AUTH);
+  const [sessionUser, setSessionUser] = React.useState<SessionUser | null>(null);
   const [isAdmin, setIsAdmin] = React.useState(false);
   const [verifiedStudent, setVerifiedStudent] = React.useState<Student | null>(null);
   const [indexNumber, setIndexNumber] = React.useState<string>("");
   const [selectedCandidate, setSelectedCandidate] = React.useState<Candidate | null>(null);
   const [currentElection, setCurrentElection] = React.useState<Election | null>(null);
-  const [elections, setElections] = React.useState<Election[]>(SAMPLE_ELECTIONS);
-  
-  const [liveVoteCount, setLiveVoteCount] = React.useState<number>(12845);
+  const [elections, setElections] = React.useState<Election[]>([]);
+  const [auditLogs, setAuditLogs] = React.useState<AuditLog[]>([]);
+  const [voters, setVoters] = React.useState<Voter[]>([]);
+  const [receiptCode, setReceiptCode] = React.useState<string>("");
   const [votedElectionIds, setVotedElectionIds] = React.useState<Record<string, boolean>>({});
   const [notifications, setNotifications] = React.useState<NotificationItem[]>([]);
   const notificationTimersRef = React.useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
   const hasVotedForCurrentElection = currentElection ? Boolean(votedElectionIds[currentElection.id]) : false;
-  React.useEffect(() => {
-    return () => {
-      Object.values(notificationTimersRef.current).forEach((timerId) => clearTimeout(timerId));
-    };
-  }, []);
+  const liveVoteCount = React.useMemo(() => elections.reduce((acc, election) => acc + election.voteCount, 0), [elections]);
 
   const addNotification = React.useCallback((notification: Omit<NotificationItem, "id" | "createdAt" | "read">) => {
     const createdAt = new Date().toISOString();
     const id = crypto.randomUUID();
-
-    setNotifications((current) => [
-      {
-        id,
-        createdAt,
-        read: false,
-        ...notification,
-      },
-      ...current,
-    ]);
+    setNotifications((current) => [{ id, createdAt, read: false, ...notification }, ...current]);
 
     notificationTimersRef.current[id] = setTimeout(() => {
       setNotifications((current) => current.filter((item) => item.id !== id));
@@ -66,161 +50,187 @@ export default function App() {
     }, 12000);
   }, []);
 
+  React.useEffect(() => {
+    return () => {
+      Object.values(notificationTimersRef.current).forEach((timerId) => clearTimeout(timerId));
+    };
+  }, []);
+
   const markNotificationsRead = React.useCallback(() => {
     setNotifications((current) => current.map((notification) => ({ ...notification, read: true })));
   }, []);
 
-  const handleCastVote = React.useCallback(() => {
-    if (!currentElection) return;
+  const loadElections = React.useCallback(async () => {
+    try {
+      const data = await api.getElections();
+      setElections(data);
+      if (currentElection) {
+        const refreshed = data.find((e) => e.id === currentElection.id) || null;
+        setCurrentElection(refreshed);
+      }
+    } catch (error: any) {
+      addNotification({ title: "Failed to load elections", message: error.message || "Could not reach backend.", tone: "warning" });
+    }
+  }, [addNotification, currentElection]);
 
-    if (!selectedCandidate) {
+  const loadAdminData = React.useCallback(async () => {
+    try {
+      const [registry, logs] = await Promise.all([api.getVoters(), api.getAuditLogs()]);
+      setVoters(registry);
+      setAuditLogs(logs);
+    } catch {
+      // Non-admin sessions can fail here; keep silent in voter mode.
+    }
+  }, []);
+
+  React.useEffect(() => {
+    const bootstrap = async () => {
+      try {
+        const me = await api.me();
+        if (me.user) {
+          setSessionUser(me.user);
+          const admin = me.user.role === "admin";
+          setIsAdmin(admin);
+          if (admin) {
+            setCurrentView(AppView.ADMIN_DASHBOARD);
+            await loadAdminData();
+          }
+        }
+      } catch {
+        setSessionUser(null);
+      }
+      await loadElections();
+    };
+
+    void bootstrap();
+  }, [loadAdminData, loadElections]);
+
+  const handleLogin = async (payload: { email: string; password: string; isAdmin: boolean; indexNumber?: string }) => {
+    try {
+      const user = await api.login(payload.email, payload.password);
+      setSessionUser(user);
+      setIsAdmin(payload.isAdmin || user.role === "admin");
+      setIndexNumber(payload.indexNumber || "");
       addNotification({
-        title: "No Selection Made",
-        message: `Please choose at least one candidate before submitting your ballot.`,
-        tone: "warning",
+        title: "Session Started",
+        message: user.role === "admin" ? "Administrator login verified." : "Voter login verified.",
+        tone: "success",
       });
+      setCurrentView(AppView.VERIFY);
+    } catch (error: any) {
+      addNotification({ title: "Login Failed", message: error.message || "Invalid credentials", tone: "warning" });
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await api.logout();
+    } finally {
+      setSessionUser(null);
+      setVerifiedStudent(null);
+      setIsAdmin(false);
+      setCurrentView(AppView.AUTH);
+    }
+  };
+
+  const handleVerificationComplete = async () => {
+    if (isAdmin) {
+      await loadAdminData();
+      setCurrentView(AppView.ADMIN_DASHBOARD);
       return;
     }
 
+    try {
+      const fromSession = await api.getStudentMe();
+      const resolvedStudent = fromSession || (indexNumber ? await api.getStudentByIndex(indexNumber) : null);
+      if (!resolvedStudent) {
+        addNotification({ title: "Student Not Found", message: "No student profile matched this session.", tone: "warning" });
+        setCurrentView(AppView.AUTH);
+        return;
+      }
+      setVerifiedStudent(resolvedStudent);
+      addNotification({ title: "Identity Verified", message: `${resolvedStudent.name} matched successfully.`, tone: "success" });
+      setCurrentView(AppView.VERIFY_CONFIRM);
+    } catch (error: any) {
+      addNotification({ title: "Verification Error", message: error.message || "Could not fetch verified profile.", tone: "warning" });
+    }
+  };
+
+  const createElection = React.useCallback(async (election: Election) => {
+    try {
+      const created = await api.createElection(election);
+      setElections((curr) => [created, ...curr]);
+      setCurrentElection(created);
+      addNotification({ title: "Election Created", message: `${created.title} has been created.`, tone: "success" });
+      await loadAdminData();
+    } catch (error: any) {
+      addNotification({ title: "Create Failed", message: error.message || "Could not create election.", tone: "warning" });
+    }
+  }, [addNotification, loadAdminData]);
+
+  const addCandidate = React.useCallback(async (electionId: string, candidate: Candidate) => {
+    try {
+      const created = await api.addCandidate(electionId, candidate);
+      setElections((curr) => curr.map((e) => (e.id === electionId ? { ...e, candidates: [...e.candidates, created] } : e)));
+      setCurrentElection((curr) => (curr && curr.id === electionId ? { ...curr, candidates: [...curr.candidates, created] } : curr));
+      addNotification({ title: "Candidate Added", message: `${created.name} has been added to the election.`, tone: "success" });
+      await loadAdminData();
+    } catch (error: any) {
+      addNotification({ title: "Create Failed", message: error.message || "Could not add candidate.", tone: "warning" });
+    }
+  }, [addNotification, loadAdminData]);
+
+  const handleCastVote = React.useCallback(async () => {
+    if (!currentElection || !selectedCandidate || !sessionUser) return;
+
     if (currentElection.status === "Closed") {
-      addNotification({
-        title: "Election Closed",
-        message: `Voting for ${currentElection.title} has ended and is no longer accepting votes.`,
-        tone: "warning",
-      });
+      addNotification({ title: "Election Closed", message: `Voting for ${currentElection.title} has ended.`, tone: "warning" });
       return;
     }
 
     if (votedElectionIds[currentElection.id]) {
-      addNotification({
-        title: "Vote Already Cast",
-        message: `You have already voted in the ${currentElection.title}.`,
-        tone: "warning",
-      });
+      addNotification({ title: "Vote Already Cast", message: `You already voted in ${currentElection.title}.`, tone: "warning" });
       return;
     }
 
-    setVotedElectionIds((current) => ({
-      ...current,
-      [currentElection.id]: true,
-    }));
+    try {
+      const verification = await api.startVerification(currentElection.id, "face");
+      await api.completeVerification(verification.id, "verified", 0.99);
 
-    setCurrentElection((current) => {
-      if (!current) return current;
-      const updatedCandidates = current.candidates.map((candidate) =>
-        candidate.id === selectedCandidate.id ? { ...candidate, voteCount: (candidate.voteCount || 0) + 1 } : candidate
-      );
-      return { ...current, voteCount: current.voteCount + 1, candidates: updatedCandidates };
-    });
-    setLiveVoteCount((count) => count + 1);
-
-    addNotification({
-      title: "Vote Cast Successfully",
-      message: `${selectedCandidate.name} has been submitted successfully for ${currentElection.title}.`,
-      tone: "success",
-    });
-    setCurrentView(AppView.SUCCESS);
-  }, [addNotification, currentElection, selectedCandidate, votedElectionIds]);
-
-  const createElection = React.useCallback((election: Election) => {
-    setElections((curr) => [election, ...curr]);
-    setCurrentElection(election);
-    addNotification({
-      title: "Election Created",
-      message: `${election.title} has been created.`,
-      tone: "success",
-    });
-  }, [addNotification]);
-
-  const addCandidate = React.useCallback((electionId: string, candidate: Candidate) => {
-    setElections((curr) => curr.map((e) => e.id === electionId ? { ...e, candidates: [...e.candidates, candidate] } : e));
-    // if current election matches, update it too
-    setCurrentElection((curr) => curr && curr.id === electionId ? { ...curr, candidates: [...curr.candidates, candidate] } : curr);
-    addNotification({
-      title: "Candidate Added",
-      message: `${candidate.name} has been added to the election.`,
-      tone: "success",
-    });
-  }, [addNotification]);
-
-  const closeCurrentElection = React.useCallback(() => {
-    if (!currentElection) {
-      addNotification({
-        title: "No Election Selected",
-        message: `Please select an election before attempting to close it.`,
-        tone: "warning",
+      const voterCandidates = await api.getVoters(sessionUser.email);
+      const matchedVoter = voterCandidates.find((voter) => voter.email === sessionUser.email);
+      const vote = await api.castVote({
+        electionId: currentElection.id,
+        candidateId: selectedCandidate.id,
+        verificationSessionId: verification.id,
+        voterId: matchedVoter?.id,
       });
-      return;
+
+      setReceiptCode(vote.receipt_code);
+      setVotedElectionIds((current) => ({ ...current, [currentElection.id]: true }));
+      await loadElections();
+
+      addNotification({ title: "Vote Cast Successfully", message: `${selectedCandidate.name} submitted for ${currentElection.title}.`, tone: "success" });
+      setCurrentView(AppView.SUCCESS);
+    } catch (error: any) {
+      addNotification({ title: "Vote Failed", message: error.message || "Could not cast vote.", tone: "warning" });
     }
-
-    setCurrentElection((current) => {
-      if (!current) return current;
-      return { ...current, status: "Closed" };
-    });
-
-    addNotification({
-      title: "Election Closed",
-      message: `${currentElection.title} has been marked as Closed. Results are finalized.`,
-      tone: "success",
-    });
-  }, [addNotification, currentElection]);
-
-  const handleLogin = (admin: boolean = false, studentId: string = "") => {
-    setIsAdmin(admin);
-    setIndexNumber(studentId);
-    addNotification({
-      title: "Session Started",
-      message: admin ? `Administrator login started for ${studentId || "system user"}.` : `Verification started for HTU index ${studentId}.`,
-      tone: "info",
-    });
-    if (admin) {
-      // Admins go through facial verification first
-      setCurrentView(AppView.VERIFY);
-    } else {
-      setCurrentView(AppView.VERIFY);
-    }
-  };
+  }, [addNotification, currentElection, loadElections, selectedCandidate, sessionUser, votedElectionIds]);
 
   const renderView = () => {
     switch (currentView) {
       case AppView.AUTH:
         return <AuthView onLogin={handleLogin} />;
+
       case AppView.VERIFY:
-        return (
-          <VerifyIdentityView 
-            indexNumber={indexNumber}
-            onVerify={() => {
-              addNotification({
-                title: "Administrator Verified",
-                message: `Administrator biometric verification successful. Access granted.`,
-                tone: "success",
-              });
-              setCurrentView(AppView.ADMIN_DASHBOARD);
-            }}
-            onVerifyWithStudent={(student) => {
-              setVerifiedStudent(student);
-              addNotification({
-                title: "Identity Verified",
-                message: `${student.name} matched successfully and is ready for the next step.`,
-                tone: "success",
-              });
-              setCurrentView(isAdmin ? AppView.ADMIN_DASHBOARD : AppView.VERIFY_CONFIRM);
-            }}
-            onCancel={() => setCurrentView(AppView.AUTH)}
-            isAdmin={isAdmin}
-          />
-        );
+        return <VerifyIdentityView onVerify={handleVerificationComplete} onCancel={() => setCurrentView(AppView.AUTH)} isAdmin={isAdmin} />;
+
       case AppView.VERIFY_CONFIRM:
         return verifiedStudent ? (
           <VerificationConfirmView
             student={verifiedStudent}
             onConfirm={() => {
               if (verifiedStudent.status === "Active") {
-                addNotification({
-                  title: "Access Approved",
-                  message: `${verifiedStudent.name} has been cleared for ballot access.`,
-                  tone: "success",
-                });
                 setCurrentView(AppView.ELECTIONS);
               }
             }}
@@ -230,6 +240,7 @@ export default function App() {
             }}
           />
         ) : null;
+
       case AppView.ELECTIONS:
         return (
           <BallotPageLayout voteCount={liveVoteCount} onViewResults={() => setCurrentView(AppView.RESULTS)}>
@@ -237,106 +248,67 @@ export default function App() {
               elections={elections}
               onSelectElection={(election) => {
                 setCurrentElection(election);
-                addNotification({
-                  title: "Election Selected",
-                  message: `You have selected the ${election.title}. Please review the candidates.`,
-                  tone: "info",
-                });
+                addNotification({ title: "Election Selected", message: `You selected ${election.title}.`, tone: "info" });
               }}
               onViewChange={setCurrentView}
             />
           </BallotPageLayout>
         );
+
       case AppView.ELECTION_DETAIL:
         return currentElection ? (
           <ElectionDetailView
             election={currentElection}
             student={verifiedStudent}
+            hasVoted={hasVotedForCurrentElection}
             onSelect={(candidate) => {
               setSelectedCandidate(candidate);
-              addNotification({
-                title: "Candidate Selected",
-                message: `${candidate.name} is now queued for final review.`,
-                tone: "info",
-              });
+              addNotification({ title: "Candidate Selected", message: `${candidate.name} ready for review.`, tone: "info" });
               setCurrentView(AppView.REVIEW);
             }}
             onBack={() => setCurrentView(AppView.ELECTIONS)}
             onViewResults={() => setCurrentView(AppView.RESULTS)}
           />
-        ) : (
-            <BallotPageLayout voteCount={liveVoteCount} onViewResults={() => setCurrentView(AppView.RESULTS)}>
-            <div className="text-center py-12">
-              <p className="text-on-surface-variant">No election selected</p>
-              <Button 
-                onClick={() => setCurrentView(AppView.ELECTIONS)}
-                className="mt-4"
-              >
-                Back to Elections
-              </Button>
-            </div>
-          </BallotPageLayout>
-        );
+        ) : null;
+
       case AppView.BALLOT:
         return (
-          <BallotView 
+          <BallotView
             student={verifiedStudent}
             voteCount={liveVoteCount}
             currentElection={currentElection}
             onViewResults={() => setCurrentView(AppView.RESULTS)}
             onSelect={(candidate) => {
               setSelectedCandidate(candidate);
-              addNotification({
-                title: "Candidate Selected",
-                message: `${candidate.name} is now queued for final review.`,
-                tone: "info",
-              });
               setCurrentView(AppView.REVIEW);
             }}
           />
         );
+
       case AppView.REVIEW:
         return (
-          <BallotPageLayout 
-            voteCount={currentElection?.voteCount || liveVoteCount}
-            currentElection={currentElection}
-            onViewElections={() => setCurrentView(AppView.ELECTIONS)}
-            onViewResults={() => setCurrentView(AppView.RESULTS)}
-          >
+          <BallotPageLayout voteCount={currentElection?.voteCount || liveVoteCount} currentElection={currentElection} onViewElections={() => setCurrentView(AppView.ELECTIONS)} onViewResults={() => setCurrentView(AppView.RESULTS)}>
             <div className="max-w-2xl mx-auto py-20 px-6 space-y-12">
               <div className="text-center space-y-4">
                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-surface-container rounded-full text-xs font-black uppercase tracking-widest text-on-surface-variant mb-2">
                   <Lock size={12} className="fill-current" />
                   Step 3 of 4: Final Review
                 </div>
-                  <h1 className="text-4xl font-black tracking-tight">Review Your Ballot</h1>
-                <p className="text-on-surface-variant max-w-sm mx-auto leading-relaxed">
-                  Please double-check your selection before finalizing your vote. This action cannot be undone.
-                </p>
+                <h1 className="text-4xl font-black tracking-tight">Review Your Ballot</h1>
               </div>
 
               <Card className="p-10 space-y-10 border-2 border-secondary overflow-hidden relative">
-                <div className="absolute top-0 right-0 p-4 opacity-10">
-                  <Landmark size={120} />
-                </div>
-                
+                <div className="absolute top-0 right-0 p-4 opacity-10"><Landmark size={120} /></div>
                 <div className="space-y-4 relative z-10">
-                  <p className="text-[10px] font-black text-secondary uppercase tracking-[0.2em]">
-                    Your Selection
-                  </p>
+                  <p className="text-[10px] font-black text-secondary uppercase tracking-[0.2em]">Your Selection</p>
                   <div className="flex items-center gap-6">
-                    <img 
-                      src={selectedCandidate?.photoUrl} 
-                      alt="" 
-                      className="w-16 h-16 rounded-lg object-cover border border-outline-variant/30"
-                    />
+                    <img src={selectedCandidate?.photoUrl} alt="" className="w-16 h-16 rounded-lg object-cover border border-outline-variant/30" />
                     <div>
                       <h2 className="text-3xl font-black text-on-surface">{selectedCandidate?.name}</h2>
                       <p className="font-bold text-on-surface-variant">{selectedCandidate?.party}</p>
                     </div>
                   </div>
                 </div>
-
                 <div className="pt-10 border-t border-surface-container space-y-6 relative z-10">
                   <div className="flex items-start gap-3">
                     <ShieldCheck className="text-secondary shrink-0" size={20} />
@@ -345,291 +317,139 @@ export default function App() {
                       <p className="text-xs text-on-surface-variant">A unique verification code will be generated for your audit trail.</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <Lock className="text-secondary shrink-0" size={20} />
-                    <div>
-                      <p className="text-sm font-bold text-on-surface">End-to-End Encryption</p>
-                      <p className="text-xs text-on-surface-variant">Your vote is sealed and anonymized before leaving this device.</p>
-                    </div>
-                  </div>
                 </div>
-                
-                <div className="absolute bottom-0 left-0 w-full h-1.5 bg-secondary" />
               </Card>
 
               <div className="flex flex-col gap-4">
-                <Button 
-                  size="xl" 
-                  className="h-20 w-full text-lg shadow-xl shadow-secondary/20 hover:shadow-2xl transition-all"
-                  onClick={handleCastVote}
-                  disabled={hasVotedForCurrentElection}
-                >
+                <Button size="xl" className="h-20 w-full text-lg" onClick={handleCastVote} disabled={hasVotedForCurrentElection || !selectedCandidate}>
                   {hasVotedForCurrentElection ? "Vote Already Cast" : "Seal and Cast My Vote"}
                   <Send size={20} className="ml-2" />
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="lg" 
-                  className="w-full font-bold h-14"
-                  onClick={() => setCurrentView(AppView.ELECTION_DETAIL)}
-                >
+                <Button variant="outline" size="lg" className="w-full font-bold h-14" onClick={() => setCurrentView(AppView.ELECTION_DETAIL)}>
                   Change Selection
                 </Button>
               </div>
             </div>
           </BallotPageLayout>
         );
+
       case AppView.SUCCESS:
         return (
-          <BallotPageLayout 
-            voteCount={currentElection?.voteCount || liveVoteCount}
-            currentElection={currentElection}
-            selectedCandidateName={selectedCandidate?.name}
-            showResults={false}
-            onViewElections={() => {
-              setSelectedCandidate(null);
-              setCurrentView(AppView.ELECTIONS);
-            }}
-            onViewResults={() => setCurrentView(AppView.RESULTS)}
-          >
+          <BallotPageLayout voteCount={currentElection?.voteCount || liveVoteCount} currentElection={currentElection} selectedCandidateName={selectedCandidate?.name} showResults={false} onViewElections={() => { setSelectedCandidate(null); setCurrentView(AppView.ELECTIONS); }} onViewResults={() => setCurrentView(AppView.RESULTS)}>
             <div className="flex flex-col items-center justify-center min-h-[calc(100vh-64px)] p-6">
-              <motion.div 
-                 initial={{ scale: 0.8, opacity: 0 }}
-                 animate={{ scale: 1, opacity: 1 }}
-                 className="max-w-xl w-full text-center space-y-10"
-              >
+              <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-xl w-full text-center space-y-10">
                 <div className="flex justify-center">
                   <div className="w-24 h-24 bg-secondary-container rounded-full flex items-center justify-center relative shadow-[0_0_40px_rgba(49,107,243,0.2)]">
                     <CheckCircle2 size={48} className="text-secondary fill-white" />
-                    <motion.div 
-                      initial={{ scale: 1, opacity: 0 }}
-                      animate={{ scale: 1.5, opacity: [0, 0.5, 0] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                      className="absolute inset-0 bg-secondary rounded-full"
-                    />
                   </div>
                 </div>
-                
                 <div className="space-y-4">
                   <h1 className="text-5xl font-black tracking-tight text-on-surface">Vote Successfully cast</h1>
-                  <p className="text-on-surface-variant text-lg leading-relaxed max-w-sm mx-auto">
-                    Your voice has been recorded in the National Digital Ballot. Thank you for participating in this democratic process.
-                  </p>
+                  <p className="text-on-surface-variant text-lg leading-relaxed max-w-sm mx-auto">Your ballot has been securely recorded.</p>
                 </div>
 
                 <Card className="p-8 bg-surface-container-low border-secondary/20">
-                  <div className="space-y-6">
-                     <div>
-                       <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-2">Receipt / Verification Code</p>
-                       <p className="font-mono text-xl font-bold break-all select-all hover:text-secondary transition-colors">
-                          CV-2024-88A2-E40B-991Q-91L7
-                       </p>
-                     </div>
-                  </div>
+                  <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-2">Receipt / Verification Code</p>
+                  <p className="font-mono text-xl font-bold break-all select-all hover:text-secondary transition-colors">{receiptCode || "Unavailable"}</p>
                 </Card>
 
-                <div className="pt-6">
-                  <Button
-                    size="lg"
-                    className="w-full font-bold h-14"
-                    onClick={() => setCurrentView(AppView.ELECTION_DETAIL)}
-                  >
-                    Back to Ballot Page
-                  </Button>
-                </div>
+                <Button size="lg" className="w-full font-bold h-14" onClick={() => setCurrentView(AppView.ELECTION_DETAIL)}>
+                  Back to Ballot Page
+                </Button>
               </motion.div>
             </div>
           </BallotPageLayout>
         );
-        case AppView.RESULTS:
-          return currentElection ? (
-            <BallotPageLayout
-              voteCount={currentElection.voteCount}
-              currentElection={currentElection}
-              selectedCandidateName={selectedCandidate?.name}
-              showResults
-              onViewElections={() => setCurrentView(AppView.ELECTIONS)}
-              onViewResults={() => setCurrentView(AppView.RESULTS)}
-            >
-              <div className="max-w-3xl mx-auto py-16 px-6 space-y-8">
-                <header className="space-y-3">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-secondary">Election Results</p>
-                  <h1 className="text-4xl font-black tracking-tight text-on-surface">{currentElection.title}</h1>
-                  <p className="text-on-surface-variant max-w-2xl leading-relaxed">
-                      The result summary for this university election is displayed below for every candidate.
-                  </p>
-                </header>
-                {/* compute totals and winners */}
-                {(() => {
-                  const totalCandidateVotes = currentElection.candidates.reduce((s, c) => s + (c.voteCount || 0), 0);
-                  const totalVotes = Math.max(currentElection.voteCount || 0, totalCandidateVotes);
-                  const maxVotes = currentElection.candidates.length ? Math.max(...currentElection.candidates.map(c => c.voteCount || 0)) : 0;
-                  const winners = currentElection.candidates.filter(c => (c.voteCount || 0) === maxVotes && maxVotes > 0);
 
-                  return (
-                    <div className="space-y-4">
-                      {currentElection.status === "Closed" && winners.length > 0 && (
-                        <Card className="p-4 bg-white/80 border border-outline-variant/20">
-                          <p className="text-sm text-on-surface-variant">Winner{winners.length > 1 ? "s" : ""}</p>
-                          <div className="flex items-center gap-3 mt-2">
-                            {winners.map((w) => (
-                              <div key={w.id} className="flex items-center gap-3">
-                                <img src={w.photoUrl} alt={w.name} className="w-12 h-12 rounded-md object-cover border" />
-                                <div>
-                                  <div className="font-bold text-on-surface">{w.name}</div>
-                                  <div className="text-sm text-on-surface-variant">{(w.voteCount || 0).toLocaleString()} votes</div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </Card>
-                      )}
-                      <div className="text-sm text-on-surface-variant">Total votes counted: <span className="font-bold text-secondary">{totalVotes.toLocaleString()}</span></div>
-                    </div>
-                  );
-                })()}
+      case AppView.RESULTS:
+        return currentElection ? (
+          <BallotPageLayout voteCount={currentElection.voteCount} currentElection={currentElection} selectedCandidateName={selectedCandidate?.name} showResults onViewElections={() => setCurrentView(AppView.ELECTIONS)} onViewResults={() => setCurrentView(AppView.RESULTS)}>
+            <div className="max-w-3xl mx-auto py-16 px-6 space-y-8">
+              <header className="space-y-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-secondary">Election Results</p>
+                <h1 className="text-4xl font-black tracking-tight text-on-surface">{currentElection.title}</h1>
+              </header>
 
-                <Card className="p-8 sm:p-10 border-2 border-secondary/20 bg-surface-container-low space-y-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div className="rounded-2xl bg-white/70 p-4 border border-outline-variant/30">
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant">Election</p>
-                        <p className="mt-2 text-sm font-bold text-on-surface">{currentElection.title}</p>
+              <Card className="p-8 sm:p-10 border-2 border-secondary/20 bg-surface-container-low space-y-6">
+                <div className="space-y-3 pt-2">
+                  {currentElection.candidates.map((candidate) => {
+                    const votes = candidate.voteCount || 0;
+                    const totalVotes = Math.max(1, currentElection.voteCount || 1);
+                    const percent = Math.round((votes / totalVotes) * 100);
+                    return (
+                      <div key={candidate.id} className="rounded-2xl border p-4 sm:p-5 flex flex-col sm:flex-row gap-4 items-start border-outline-variant/30 bg-white/60">
+                        <div className="w-16 h-16 rounded-xl overflow-hidden border border-outline-variant/30 shrink-0 bg-white">
+                          <img src={candidate.photoUrl} alt={candidate.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          <h3 className="text-lg font-bold text-on-surface">{candidate.name}</h3>
+                          <p className="text-sm font-semibold text-on-surface-variant">{candidate.party}</p>
+                        </div>
+                        <div className="sm:w-36 flex-shrink-0 flex flex-col items-end gap-1">
+                          <div className="text-sm font-bold text-on-surface">{votes.toLocaleString()}</div>
+                          <div className="text-xs text-on-surface-variant">{percent}%</div>
+                        </div>
                       </div>
-                      <div className="rounded-2xl bg-white/70 p-4 border border-outline-variant/30">
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant">Votes Cast</p>
-                        <p className="mt-2 text-sm font-bold text-secondary">{currentElection.voteCount.toLocaleString()}</p>
-                      </div>
-                      <div className="rounded-2xl bg-white/70 p-4 border border-outline-variant/30">
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant">Candidates</p>
-                        <p className="mt-2 text-sm font-bold text-on-surface">{currentElection.candidates.length}</p>
-                      </div>
-                    </div>
+                    );
+                  })}
+                </div>
+                <div className="pt-4 border-t border-outline-variant/20 flex flex-col sm:flex-row gap-4">
+                  <Button className="flex-1" onClick={() => setCurrentView(AppView.ELECTION_DETAIL)}>Back to Ballot Page</Button>
+                  <Button variant="outline" className="flex-1" onClick={() => setCurrentView(AppView.ELECTIONS)}>Back to Elections</Button>
+                </div>
+              </Card>
+            </div>
+          </BallotPageLayout>
+        ) : null;
 
-                      <div className="space-y-3 pt-2">
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant">Candidate Results</p>
-                      {(() => {
-                        const totalCandidateVotes = currentElection.candidates.reduce((s, c) => s + (c.voteCount || 0), 0);
-                        const totalVotes = Math.max(currentElection.voteCount || 0, totalCandidateVotes);
-
-                        return (
-                          <div className="grid grid-cols-1 gap-3">
-                            {currentElection.candidates.map((candidate) => {
-                              const isRecordedChoice = candidate.id === selectedCandidate?.id;
-                              const votes = candidate.voteCount || 0;
-                              const percent = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
-
-                              return (
-                                <div
-                                  key={candidate.id}
-                                  className={`rounded-2xl border p-4 sm:p-5 flex flex-col sm:flex-row gap-4 items-start ${
-                                    isRecordedChoice ? "border-secondary bg-secondary/5" : "border-outline-variant/30 bg-white/60"
-                                  }`}
-                                >
-                                  <div className="w-16 h-16 rounded-xl overflow-hidden border border-outline-variant/30 shrink-0 bg-white">
-                                    <img
-                                      src={candidate.photoUrl}
-                                      alt={candidate.name}
-                                      className="w-full h-full object-cover"
-                                      referrerPolicy="no-referrer"
-                                    />
-                                  </div>
-
-                                  <div className="flex-1 space-y-1">
-                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-                                      <h3 className="text-lg font-bold text-on-surface">{candidate.name}</h3>
-                                      {isRecordedChoice && (
-                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-secondary">
-                                          Recorded ballot
-                                        </span>
-                                      )}
-                                    </div>
-                                    <p className="text-sm font-semibold text-on-surface-variant">{candidate.party}</p>
-                                    <p className="text-sm text-on-surface-variant leading-relaxed">{candidate.description}</p>
-                                  </div>
-
-                                  <div className="sm:w-36 flex-shrink-0 flex flex-col items-end gap-1">
-                                    <div className="text-sm font-bold text-on-surface">{votes.toLocaleString()}</div>
-                                    <div className="text-xs text-on-surface-variant">{percent}%</div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        );
-                      })()}
-                    </div>
-
-                  <div className="pt-4 border-t border-outline-variant/20 flex flex-col sm:flex-row gap-4">
-                    <Button className="flex-1" onClick={() => setCurrentView(AppView.ELECTION_DETAIL)}>
-                      Back to Ballot Page
-                    </Button>
-                    <Button variant="outline" className="flex-1" onClick={() => setCurrentView(AppView.ELECTIONS)}>
-                      Back to Elections
-                    </Button>
-                  </div>
-                </Card>
-              </div>
-            </BallotPageLayout>
-          ) : (
-            <BallotPageLayout voteCount={liveVoteCount} onViewResults={() => setCurrentView(AppView.RESULTS)}>
-              <div className="text-center py-12">
-                <p className="text-on-surface-variant">No election selected</p>
-                <Button className="mt-4" onClick={() => setCurrentView(AppView.ELECTIONS)}>
-                  Back to Elections
-                </Button>
-              </div>
-            </BallotPageLayout>
-          );
       case AppView.ADMIN_DASHBOARD:
         return (
           <AdminPageLayout currentView={currentView} onNavigate={(v) => setCurrentView(v)} onCreateElection={() => setCurrentView(AppView.ADMIN_CREATE)} onCreateCandidate={() => setCurrentView(AppView.ADMIN_CREATE_CANDIDATE)} currentElection={currentElection} elections={elections}>
-            <AdminDashboardView
-              currentElection={currentElection}
-              onCloseElection={closeCurrentElection}
-              onCreateElection={createElection}
-              onAddCandidate={addCandidate}
-              onNavigate={(view) => setCurrentView(view)}
-              elections={elections}
-            />
+            <AdminDashboardView currentElection={currentElection} onCreateElection={createElection} onAddCandidate={addCandidate} elections={elections} auditLogs={auditLogs} voterCount={voters.length} />
           </AdminPageLayout>
         );
+
       case AppView.ADMIN_REGISTRY:
         return (
           <AdminPageLayout currentView={currentView} onNavigate={(v) => setCurrentView(v)} onCreateElection={() => setCurrentView(AppView.ADMIN_CREATE)} onCreateCandidate={() => setCurrentView(AppView.ADMIN_CREATE_CANDIDATE)} currentElection={currentElection} elections={elections}>
             <AdminRegistryView />
           </AdminPageLayout>
         );
+
       case AppView.ADMIN_LOGS:
         return (
           <AdminPageLayout currentView={currentView} onNavigate={(v) => setCurrentView(v)} onCreateElection={() => setCurrentView(AppView.ADMIN_CREATE)} onCreateCandidate={() => setCurrentView(AppView.ADMIN_CREATE_CANDIDATE)} currentElection={currentElection} elections={elections}>
-            <AdminLogsView />
+            <AdminLogsView logs={auditLogs} />
           </AdminPageLayout>
         );
+
       case AppView.ADMIN_CREATE:
         return (
           <AdminPageLayout currentView={currentView} onNavigate={(v) => setCurrentView(v)} onCreateElection={() => setCurrentView(AppView.ADMIN_CREATE)} onCreateCandidate={() => setCurrentView(AppView.ADMIN_CREATE_CANDIDATE)} currentElection={currentElection} elections={elections}>
-              <AdminCreateElectionView
+            <AdminCreateElectionView
               onCreate={(election) => {
-                createElection(election);
+                void createElection(election);
                 setCurrentView(AppView.ADMIN_DASHBOARD);
               }}
               onCancel={() => setCurrentView(AppView.ADMIN_DASHBOARD)}
             />
           </AdminPageLayout>
         );
+
       case AppView.ADMIN_CREATE_CANDIDATE:
         return (
           <AdminPageLayout currentView={currentView} onNavigate={(v) => setCurrentView(v)} onCreateElection={() => setCurrentView(AppView.ADMIN_CREATE)} onCreateCandidate={() => setCurrentView(AppView.ADMIN_CREATE_CANDIDATE)} currentElection={currentElection} elections={elections}>
             <AdminCreateCandidateView
               elections={elections}
               onCreateCandidate={(electionId, candidate) => {
-                addCandidate(electionId, candidate);
+                void addCandidate(electionId, candidate);
                 setCurrentView(AppView.ADMIN_DASHBOARD);
               }}
               onCancel={() => setCurrentView(AppView.ADMIN_DASHBOARD)}
             />
           </AdminPageLayout>
         );
+
       default:
         return <AuthView onLogin={handleLogin} />;
     }
@@ -637,37 +457,14 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-surface selection:bg-secondary/20 transition-colors duration-500">
-      <Header
-        currentView={currentView}
-        setView={setCurrentView}
-        isAdmin={isAdmin}
-        student={verifiedStudent}
-        notifications={notifications}
-        onNotificationsToggle={markNotificationsRead}
-      />
+      <Header currentView={currentView} setView={setCurrentView} isAdmin={isAdmin} student={verifiedStudent} notifications={notifications} onNotificationsToggle={markNotificationsRead} onLogout={() => { void handleLogout(); }} />
       <main className="pt-16 pb-20">
         <AnimatePresence mode="wait">
-          <motion.div
-            key={currentView}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            transition={{ duration: 0.35, ease: [0.19, 1, 0.22, 1] }}
-          >
+          <motion.div key={currentView} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.35, ease: [0.19, 1, 0.22, 1] }}>
             {renderView()}
           </motion.div>
         </AnimatePresence>
       </main>
-
-      <footer className="fixed bottom-0 w-full h-8 bg-white/50 backdrop-blur-sm border-t border-outline-variant/30 hidden md:flex items-center px-6">
-        <div className="w-full max-w-7xl mx-auto flex justify-between items-center text-[9px] font-black uppercase tracking-[0.2em] text-outline">
-          <div className="flex gap-4">
-            <span>© 2026 CivicVote National Commission</span>
-              <span>Version 1.0.0</span>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
-

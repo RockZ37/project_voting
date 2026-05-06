@@ -1,17 +1,18 @@
 import { AuditLog } from "@/src/types";
 import { Card } from "@/src/components/ui/Card";
 import { Button } from "@/src/components/ui/Button";
-import { Search, Download, ShieldCheck, AlertCircle, Clock } from "lucide-react";
+import { Download, Clock } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 
-const LOGS: AuditLog[] = [
-  { id: '1', timestamp: '2024-04-28 12:44:12', type: 'BALLOT_CAST', voterId: 'CV-1229', ip: '192.168.1.4', status: 'SUCCESS' },
-  { id: '2', timestamp: '2024-04-28 12:43:55', type: 'MFA_CHALLENGE', voterId: 'CV-4421', ip: '192.168.2.11', status: 'MFA PENDING' },
-  { id: '3', timestamp: '2024-04-28 12:42:01', type: 'LOGIN_FAILURE', voterId: 'UNKNOWN', ip: '45.122.9.2', status: 'REJECTED' },
-  { id: '4', timestamp: '2024-04-28 12:40:12', type: 'BALLOT_CAST', voterId: 'CV-8821', ip: '192.168.1.15', status: 'SUCCESS' },
-];
+interface AdminLogsViewProps {
+  logs: AuditLog[];
+}
 
-export function AdminLogsView() {
+export function AdminLogsView({ logs }: AdminLogsViewProps) {
+  const successCount = logs.filter((log) => String(log.status).toLowerCase() === "success").length;
+  const rejectedCount = logs.filter((log) => String(log.status).toLowerCase() === "rejected").length;
+  const successRate = logs.length ? `${Math.round((successCount / logs.length) * 100)}%` : "0%";
+
   return (
     <div className="max-w-7xl mx-auto px-6 py-10 space-y-8">
       <div className="flex justify-between items-center">
@@ -24,10 +25,10 @@ export function AdminLogsView() {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
-          { label: 'Total Events', val: '142,502' },
-          { label: 'Security Threats', val: '12' },
-          { label: 'Success Rate', val: '99.9%' },
-          { label: 'Ledger Height', val: '#492,021' },
+          { label: 'Total Events', val: String(logs.length) },
+          { label: 'Rejected Events', val: String(rejectedCount) },
+          { label: 'Success Rate', val: successRate },
+          { label: 'Latest Event', val: logs[0] ? new Date(logs[0].timestamp).toLocaleTimeString() : '-' },
         ].map(s => (
           <Card key={s.label} className="p-5 space-y-1">
             <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">{s.label}</p>
@@ -48,7 +49,7 @@ export function AdminLogsView() {
             </tr>
           </thead>
           <tbody className="divide-y divide-outline-variant/20 font-mono text-xs">
-            {LOGS.map((log) => (
+            {logs.map((log) => (
               <tr key={log.id} className="hover:bg-surface-container-highest/30 transition-colors">
                 <td className="px-6 py-4 text-on-surface-variant font-bold">
                   {log.timestamp}
@@ -62,8 +63,8 @@ export function AdminLogsView() {
                 <td className="px-6 py-4">
                   <div className={cn(
                     "inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-[0.1em]",
-                    log.status === 'SUCCESS' ? "bg-green-50 text-green-700" : 
-                    log.status === 'REJECTED' ? "bg-error-container text-error" : "bg-yellow-50 text-yellow-700"
+                    String(log.status).toLowerCase() === 'success' ? "bg-green-50 text-green-700" : 
+                    String(log.status).toLowerCase() === 'rejected' ? "bg-error-container text-error" : "bg-yellow-50 text-yellow-700"
                   )}>
                     {log.status}
                   </div>
@@ -73,6 +74,11 @@ export function AdminLogsView() {
                 </td>
               </tr>
             ))}
+            {logs.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-6 py-8 text-center text-sm text-on-surface-variant">No logs available.</td>
+              </tr>
+            ) : null}
           </tbody>
         </table>
       </Card>

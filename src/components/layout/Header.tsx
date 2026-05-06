@@ -10,6 +10,7 @@ interface HeaderProps {
   student?: Student | null;
   notifications?: NotificationItem[];
   onNotificationsToggle?: () => void;
+  onLogout?: () => void;
 }
 
 export function Header({
@@ -19,6 +20,7 @@ export function Header({
   student,
   notifications = [],
   onNotificationsToggle,
+  onLogout,
 }: HeaderProps) {
   const isAnonymous = currentView === AppView.AUTH || currentView === AppView.VERIFY;
   const [showProfile, setShowProfile] = React.useState(false);
@@ -208,6 +210,7 @@ export function Header({
                 className="w-5 h-5 text-on-surface-variant cursor-pointer hover:text-error" 
                 onClick={() => {
                   setShowProfile(false);
+                  onLogout?.();
                   setView(AppView.AUTH);
                 }}
               />

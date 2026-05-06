@@ -1,8 +1,9 @@
-import express from "express";
+import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { query } from "./db";
+import { generateId } from "./utils/id";
 
-const router = express.Router();
+const router = Router();
 
 const StudentCreate = z.object({
   indexNumber: z.string().min(1),
@@ -15,17 +16,18 @@ const StudentCreate = z.object({
   validUntil: z.string().optional(),
 });
 
-router.post("/", async (req, res) => {
+router.post("/", async (req: Request, res: Response) => {
   const parsed = StudentCreate.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.format() });
 
   const { indexNumber, name, course, profilePhotoUrl, idCardFrontUrl, idCardBackUrl, issueDate, validUntil } = parsed.data;
 
   try {
+    const id = generateId();
     const insert = await query(
-      `INSERT INTO student_identities (index_number, name, course, profile_photo_url, id_card_front_url, id_card_back_url, issue_date, valid_until)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-      [indexNumber, name, course ?? null, profilePhotoUrl ?? null, idCardFrontUrl ?? null, idCardBackUrl ?? null, issueDate ?? null, validUntil ?? null]
+      `INSERT INTO student_identities (id, index_number, name, course, profile_photo_url, id_card_front_url, id_card_back_url, issue_date, valid_until)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+      [id, indexNumber, name, course ?? null, profilePhotoUrl ?? null, idCardFrontUrl ?? null, idCardBackUrl ?? null, issueDate ?? null, validUntil ?? null]
     );
 
     res.status(201).json({ student: insert.rows[0] });
@@ -39,7 +41,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.get("/index/:indexNumber", async (req, res) => {
+router.get("/index/:indexNumber", async (req: Request, res: Response) => {
   const { indexNumber } = req.params;
   try {
     const r = await query("SELECT * FROM student_identities WHERE index_number = $1", [indexNumber]);
@@ -53,7 +55,7 @@ router.get("/index/:indexNumber", async (req, res) => {
 });
 
 // current student's profile (based on session -> voter -> student link if present)
-router.get("/me", async (req, res) => {
+router.get("/me", async (req: Request, res: Response) => {
   // if user is linked to a voter record which links to student_identity_id
   const user = req.session.user;
   if (!user) return res.status(200).json({ student: null });
@@ -87,7 +89,7 @@ const StudentPatch = z.object({
   status: z.string().optional(),
 });
 
-router.patch("/:id", async (req, res) => {
+router.patch("/:id", async (req: Request, res: Response) => {
   const { id } = req.params;
   const parsed = StudentPatch.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.format() });

@@ -34,8 +34,36 @@ Core API routes:
 
 Database setup:
 
-- Ensure Postgres is running and `DATABASE_URL` is set.
-- Apply `database/schema.sql`:
+By default, the application uses **SQLite** for local development. No additional database server setup is required.
+
+### SQLite (default):
+
+```bash
+pnpm migrate    # Creates schema in ./data/civicvote.db
+pnpm seed:admin # Creates admin user (optional)
+pnpm dev        # Starts server with SQLite
+```
+
+### PostgreSQL (optional):
+
+To use PostgreSQL instead, set these environment variables:
+
+```bash
+# In .env or .env.local:
+USE_SQLITE=false
+DATABASE_URL=postgres://user:password@localhost:5432/civicvote
+DATABASE_SSL=false  # Set to true for Supabase or other hosted databases
+```
+
+Then run the migration:
+
+```bash
+pnpm migrate
+```
+
+- Ensure Postgres is running, or point `DATABASE_URL` at a hosted PostgreSQL service such as Supabase.
+- Set `DATABASE_SSL=true` for hosted databases that require TLS.
+- Apply database schema:
 
 ```bash
 pnpm migrate

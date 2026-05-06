@@ -1,9 +1,10 @@
 import express from "express";
 import { z } from "zod";
-import { pool, query } from "./db";
+import { query, withTransaction, isSqliteMode } from "./db";
 import { requireAuth } from "./middleware/authz";
 import { generateReceiptCode } from "./utils/receipt";
 import { logAuditEvent } from "./audit";
+import { generateId } from "./utils/id";
 
 const router = express.Router();
 
@@ -23,66 +24,61 @@ router.post("/cast", async (req, res) => {
 
   const { electionId, candidateId, verificationSessionId, metadata } = parsed.data;
   const actor = req.session.user;
+  let voterId: string | undefined;
 
-  const client = await pool.connect();
   try {
-    await client.query("BEGIN");
-
-    let voterId = parsed.data.voterId;
-    if (!voterId) {
-      const vr = await client.query("SELECT id FROM voters WHERE user_id = $1 LIMIT 1", [actor?.id]);
-      voterId = vr.rows[0]?.id;
-    }
-    if (!voterId) {
-      await client.query("ROLLBACK");
-      return res.status(400).json({ error: "No voter profile linked to user" });
-    }
-
-    const election = await client.query("SELECT id, status FROM elections WHERE id = $1", [electionId]);
-    if (election.rowCount === 0) {
-      await client.query("ROLLBACK");
-      return res.status(404).json({ error: "Election not found" });
-    }
-    if (election.rows[0].status !== "active") {
-      await client.query("ROLLBACK");
-      return res.status(400).json({ error: "Election is not active" });
-    }
-
-    const cand = await client.query("SELECT id FROM candidates WHERE id = $1 AND election_id = $2", [candidateId, electionId]);
-    if (cand.rowCount === 0) {
-      await client.query("ROLLBACK");
-      return res.status(400).json({ error: "Candidate does not belong to election" });
-    }
-
-    if (verificationSessionId) {
-      const vr = await client.query(
-        "SELECT id FROM verification_sessions WHERE id = $1 AND voter_id = $2 AND election_id = $3 AND status = 'verified'",
-        [verificationSessionId, voterId, electionId]
-      );
-      if (vr.rowCount === 0) {
-        await client.query("ROLLBACK");
-        return res.status(400).json({ error: "Verification session is not verified" });
+    const inserted = await withTransaction(async (tx) => {
+      voterId = parsed.data.voterId;
+      if (!voterId) {
+        const vr = await tx("SELECT id FROM voters WHERE user_id = $1 LIMIT 1", [actor?.id]);
+        voterId = vr.rows[0]?.id;
       }
-    }
+      if (!voterId) {
+        throw new Error("No voter profile linked to user");
+      }
 
-    const existing = await client.query("SELECT id FROM votes WHERE election_id = $1 AND voter_id = $2", [electionId, voterId]);
-    if ((existing.rowCount ?? 0) > 0) {
-      await client.query("ROLLBACK");
-      return res.status(409).json({ error: "Vote already cast for this election" });
-    }
+      const election = await tx("SELECT id, status FROM elections WHERE id = $1", [electionId]);
+      if (election.rowCount === 0) {
+        throw new Error("Election not found");
+      }
+      if (election.rows[0].status !== "active") {
+        throw new Error("Election is not active");
+      }
 
-    const receiptCode = generateReceiptCode();
-    const inserted = await client.query(
-      `INSERT INTO votes (election_id, candidate_id, voter_id, verification_status, receipt_code, metadata)
-       VALUES ($1,$2,$3,$4,$5,$6)
-       RETURNING id, cast_at, receipt_code`,
-      [electionId, candidateId, voterId, verificationSessionId ? "verified" : "unverified", receiptCode, metadata ?? null]
-    );
+      const cand = await tx("SELECT id FROM candidates WHERE id = $1 AND election_id = $2", [candidateId, electionId]);
+      if (cand.rowCount === 0) {
+        throw new Error("Candidate does not belong to election");
+      }
 
-    await client.query("UPDATE elections SET vote_count = vote_count + 1, updated_at = now() WHERE id = $1", [electionId]);
-    await client.query("UPDATE candidates SET vote_count = vote_count + 1, updated_at = now() WHERE id = $1", [candidateId]);
+      if (verificationSessionId) {
+        const vr = await tx(
+          "SELECT id FROM verification_sessions WHERE id = $1 AND voter_id = $2 AND election_id = $3 AND status = 'verified'",
+          [verificationSessionId, voterId, electionId]
+        );
+        if (vr.rowCount === 0) {
+          throw new Error("Verification session is not verified");
+        }
+      }
 
-    await client.query("COMMIT");
+      const existing = await tx("SELECT id FROM votes WHERE election_id = $1 AND voter_id = $2", [electionId, voterId]);
+      if ((existing.rowCount ?? 0) > 0) {
+        throw new Error("Vote already cast for this election");
+      }
+
+      const voteId = generateId();
+      const receiptCode = generateReceiptCode();
+      const result = await tx(
+        `INSERT INTO votes (id, election_id, candidate_id, voter_id, verification_status, receipt_code, metadata)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)
+         RETURNING id, cast_at, receipt_code`,
+        [voteId, electionId, candidateId, voterId, verificationSessionId ? "verified" : "unverified", receiptCode, metadata ?? null]
+      );
+
+      await tx("UPDATE elections SET vote_count = vote_count + 1, updated_at = CURRENT_TIMESTAMP WHERE id = $1", [electionId]);
+      await tx("UPDATE candidates SET vote_count = vote_count + 1, updated_at = CURRENT_TIMESTAMP WHERE id = $1", [candidateId]);
+
+      return result;
+    });
 
     await logAuditEvent({
       type: "vote.cast",
@@ -96,15 +92,15 @@ router.post("/cast", async (req, res) => {
 
     res.status(201).json({ vote: inserted.rows[0] });
   } catch (err: any) {
-    await client.query("ROLLBACK");
     // eslint-disable-next-line no-console
     console.error(err);
-    if (err?.code === "23505") {
+    if (err?.code === "23505" || /duplicate/i.test(String(err?.message || ""))) {
       return res.status(409).json({ error: "Duplicate vote attempt" });
     }
+    if (/No voter profile linked to user|Election not found|Election is not active|Candidate does not belong to election|Verification session is not verified|Vote already cast for this election/i.test(String(err?.message || ""))) {
+      return res.status(400).json({ error: err.message });
+    }
     return res.status(500).json({ error: "Server error" });
-  } finally {
-    client.release();
   }
 });
 
@@ -116,7 +112,7 @@ router.get("/elections/:electionId/results", async (req, res) => {
 
     const results = await query(
       `SELECT c.id, c.name, c.party, c.vote_count,
-              COALESCE((c.vote_count::decimal / NULLIF(e.vote_count, 0)) * 100, 0) AS percentage
+              COALESCE((CAST(c.vote_count AS REAL) / NULLIF(CAST(e.vote_count AS REAL), 0)) * 100, 0) AS percentage
        FROM candidates c
        JOIN elections e ON e.id = c.election_id
        WHERE c.election_id = $1

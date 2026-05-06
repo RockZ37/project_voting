@@ -6,17 +6,14 @@ import * as tf from "@tensorflow/tfjs-core";
 import "@tensorflow/tfjs-converter";
 import "@tensorflow/tfjs-backend-webgl";
 import { Button } from "@/src/components/ui/Button";
-import { Student } from "@/src/types";
 
 interface VerifyIdentityViewProps {
   onVerify?: () => void;
-  onVerifyWithStudent?: (student: Student) => void;
   onCancel: () => void;
   isAdmin?: boolean;
-  indexNumber?: string;
 }
 
-export function VerifyIdentityView({ onVerify, onVerifyWithStudent, onCancel, isAdmin, indexNumber }: VerifyIdentityViewProps) {
+export function VerifyIdentityView({ onVerify, onCancel, isAdmin }: VerifyIdentityViewProps) {
   const [progress, setProgress] = React.useState(0);
   const [isScanning, setIsScanning] = React.useState(false);
   const [cameraActive, setCameraActive] = React.useState(false);
@@ -58,25 +55,12 @@ export function VerifyIdentityView({ onVerify, onVerifyWithStudent, onCancel, is
       stopCamera();
       setScanMessage("Face verified");
       setTimeout(() => {
-        if (onVerifyWithStudent && indexNumber) {
-          const mockStudent: Student = {
-            id: indexNumber,
-            name: "John Doe",
-            email: "student@htu.edu.gh",
-            photoUrl: "https://picsum.photos/seed/student/200/240",
-            department: "Computer Science",
-            registrationDate: new Date().toISOString().split('T')[0],
-            status: "Active",
-          };
-          onVerifyWithStudent(mockStudent);
-        } else {
-          if (onVerify) {
-            onVerify();
-          }
+        if (onVerify) {
+          onVerify();
         }
       }, 800);
     }
-  }, [progress, isScanning, onVerify, onVerifyWithStudent, indexNumber, stopCamera, stopDetectionLoop]);
+  }, [progress, isScanning, onVerify, stopCamera, stopDetectionLoop]);
 
   React.useEffect(() => {
     if (!isScanning || !cameraActive || !videoRef.current) {

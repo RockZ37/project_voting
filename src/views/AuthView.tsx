@@ -6,18 +6,31 @@ import { AppView } from "@/src/types";
 import * as React from "react";
 
 interface AuthViewProps {
-  onLogin: (isAdmin?: boolean, indexNumber?: string) => void;
+  onLogin: (payload: { email: string; password: string; isAdmin: boolean; indexNumber?: string }) => void;
 }
 
 export function AuthView({ onLogin }: AuthViewProps) {
   const [showAssistance, setShowAssistance] = React.useState(false);
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
   const [indexNumber, setIndexNumber] = React.useState("");
+  const [mode, setMode] = React.useState<"voter" | "admin">("voter");
   const [error, setError] = React.useState("");
+
+  const demoVoterEmail = import.meta.env.VITE_DEMO_VOTER_EMAIL || "voter@civicvote.local";
+  const demoVoterPassword = import.meta.env.VITE_DEMO_VOTER_PASSWORD || "voterpass";
+  const demoVoterIndex = import.meta.env.VITE_DEMO_VOTER_INDEX || "0323080083";
+
+  React.useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    setEmail((current) => current || demoVoterEmail);
+    setPassword((current) => current || demoVoterPassword);
+    setIndexNumber((current) => current || demoVoterIndex);
+  }, [demoVoterEmail, demoVoterIndex, demoVoterPassword]);
 
   const validateIndexNumber = (value: string): boolean => {
     const trimmed = value.trim();
-    // Check for admin codes (allow without validation)
-    if (trimmed.startsWith("ADMIN-") || trimmed === "ELECTION_OFFICER") {
+    if (mode === "admin") {
       return true;
     }
     // Require exactly 10 digits
@@ -31,11 +44,10 @@ export function AuthView({ onLogin }: AuthViewProps) {
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      const trimmed = indexNumber.trim().toUpperCase();
-      if (trimmed.startsWith("ADMIN-") || trimmed === "ELECTION_OFFICER") {
-        onLogin(true, ""); // Admin login
+      if (mode === "admin") {
+        onLogin({ email, password, isAdmin: true });
       } else if (validateIndexNumber(indexNumber)) {
-        onLogin(false, indexNumber); // Regular voter login
+        onLogin({ email, password, isAdmin: false, indexNumber });
       }
     }
   };
@@ -53,6 +65,38 @@ export function AuthView({ onLogin }: AuthViewProps) {
         <Card className="p-6 sm:p-8 md:p-12 space-y-6 sm:space-y-8">
           <div className="space-y-6">
             <div className="space-y-2">
+              <label className="text-xs sm:text-sm font-semibold text-on-surface-variant block">Login Type</label>
+              <select
+                value={mode}
+                onChange={(e) => setMode(e.currentTarget.value as "voter" | "admin")}
+                className="w-full h-11 px-3 bg-white border border-outline-variant rounded-lg text-sm"
+              >
+                <option value="voter">Voter</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs sm:text-sm font-semibold text-on-surface-variant block">Email</label>
+              <Input
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.currentTarget.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs sm:text-sm font-semibold text-on-surface-variant block">Password</label>
+              <Input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.currentTarget.value)}
+              />
+            </div>
+
+            {mode === "voter" && (
+              <div className="space-y-2">
               <label className="text-xs sm:text-sm font-semibold text-on-surface-variant block">HTU Index Number</label>
               <Input 
                 placeholder="e.g. 0323080083" 
@@ -64,19 +108,19 @@ export function AuthView({ onLogin }: AuthViewProps) {
               {error && (
                 <p className="text-xs text-error font-semibold mt-1">{error}</p>
               )}
-            </div>
+              </div>
+            )}
 
             <div className="pt-2">
               <Button 
                 className="w-full gap-2 h-12 sm:h-14" 
                 size="xl"
-                disabled={indexNumber.trim().length === 0}
+                disabled={!email.trim() || !password.trim() || (mode === "voter" && indexNumber.trim().length === 0)}
                 onClick={() => {
-                  const trimmed = indexNumber.trim().toUpperCase();
-                  if (trimmed.startsWith("ADMIN-") || trimmed === "ELECTION_OFFICER") {
-                    onLogin(true, "");
+                  if (mode === "admin") {
+                    onLogin({ email, password, isAdmin: true });
                   } else if (validateIndexNumber(indexNumber)) {
-                    onLogin(false, indexNumber);
+                    onLogin({ email, password, isAdmin: false, indexNumber });
                   }
                 }}
               >
@@ -84,6 +128,21 @@ export function AuthView({ onLogin }: AuthViewProps) {
                 <span className="sm:hidden">Login</span>
                 <ArrowRight className="w-[18px] h-[18px] sm:w-5 sm:h-5" />
               </Button>
+              {import.meta.env.DEV && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full mt-2 text-xs sm:text-sm"
+                  onClick={() => {
+                    setMode("voter");
+                    setEmail(demoVoterEmail);
+                    setPassword(demoVoterPassword);
+                    setIndexNumber(demoVoterIndex);
+                  }}
+                >
+                  Use demo voter: {demoVoterEmail}
+                </Button>
+              )}
               <p className="mt-3 sm:mt-4 text-center text-xs text-outline leading-tight">
                 By logging in, you agree to the Digital Civic Conduct terms.
               </p>

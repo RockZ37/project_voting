@@ -1,6 +1,6 @@
 # Backend Deployment
 
-This backend is an Express + TypeScript service with PostgreSQL.
+This backend is an Express + TypeScript service supporting both SQLite (development) and PostgreSQL (production).
 
 ## 1) Environment Variables
 
@@ -8,9 +8,19 @@ Set these variables in your runtime:
 
 - `NODE_ENV=production`
 - `PORT=4000` (or your platform-assigned port)
-- `DATABASE_URL=postgres://...`
 - `SESSION_SECRET=<long-random-secret>`
 - `FRONTEND_ORIGIN=https://your-frontend-domain`
+
+### Database Configuration
+
+**For SQLite (development/testing):**
+- `USE_SQLITE=true`
+- `SQLITE_PATH=./data/civicvote.db` (optional, defaults shown)
+
+**For PostgreSQL (production recommended):**
+- `USE_SQLITE=false`
+- `DATABASE_URL=postgres://...`
+- `DATABASE_SSL=true` (for hosted services like Supabase)
 
 ## 2) Build and Start
 
@@ -29,9 +39,10 @@ pnpm start
 
 ## 4) Operational Checklist
 
-- Restrict database network access to trusted hosts.
+- **Database**: For production, use PostgreSQL with proper backups and access controls. SQLite is suitable for development/testing but should not be used in production for multi-user scenarios.
+- Restrict database network access to trusted hosts (PostgreSQL only).
 - Rotate `SESSION_SECRET` periodically.
-- Enable regular PostgreSQL backups.
+- Enable regular backups (database backups for PostgreSQL, file backups for SQLite).
 - Monitor response codes for spikes in `401`, `403`, and `429`.
 
 ## 5) Smoke Test

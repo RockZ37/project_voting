@@ -65,7 +65,19 @@ export interface AuditLog {
   type: string;
   voterId: string;
   ip: string;
-  status: 'SUCCESS' | 'REJECTED' | 'MFA PENDING';
+  status: string;
+}
+
+export interface SessionUser {
+  id: string;
+  email: string;
+  role: string;
+}
+
+export interface VoteReceipt {
+  id: string;
+  cast_at: string;
+  receipt_code: string;
 }
 
 export interface NotificationItem {
