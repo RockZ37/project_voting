@@ -74,6 +74,8 @@ function toElection(row: any, candidates: Candidate[] = []): Election {
     ballotType: row.ballot_type === "multi" ? "multi" : "single",
     maxVotesPerVoter: Number(row.max_votes_per_voter || 1),
     bannerUrl: row.banner_url || undefined,
+    createdAt: row.created_at || undefined,
+    updatedAt: row.updated_at || undefined,
     voteCount: Number(row.vote_count || 0),
     candidates,
   };

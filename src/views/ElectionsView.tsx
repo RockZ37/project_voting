@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Landmark, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { Landmark, Clock, CheckCircle, AlertCircle, CalendarDays } from "lucide-react";
 import { Card } from "@/src/components/ui/Card";
 import { Election, AppView } from "@/src/types";
 import { cn } from "@/src/lib/utils";
@@ -35,6 +35,16 @@ function getStatusColor(status: string): string {
     default:
       return "bg-gray-50 border-gray-200";
   }
+}
+
+function formatDateTime(value?: string) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 }
 
 export function ElectionsView({ elections, onSelectElection, onViewChange }: ElectionsViewProps) {
@@ -87,6 +97,13 @@ export function ElectionsView({ elections, onSelectElection, onViewChange }: Ele
                       </div>
                     </div>
 
+                    {formatDateTime(election.createdAt) && (
+                      <div className="flex items-center gap-2 py-2 px-3 bg-white/60 rounded-lg w-fit text-[11px] font-semibold text-on-surface-variant">
+                        <CalendarDays size={14} />
+                        Created {formatDateTime(election.createdAt)}
+                      </div>
+                    )}
+
                     <div className="flex items-center gap-2 py-2 px-3 bg-white/60 rounded-lg w-fit">
                       {getStatusIcon(election.status)}
                       <span className={cn(
@@ -121,7 +138,6 @@ export function ElectionsView({ elections, onSelectElection, onViewChange }: Ele
                           onSelectElection(election);
                           onViewChange(AppView.ELECTION_DETAIL);
                         }}
-                        disabled={election.status !== "Open"}
                         className="ml-2"
                       >
                         {election.status === "Open" ? "Vote" : "View"}

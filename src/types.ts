@@ -36,6 +36,8 @@ export interface Election {
   ballotType: "single" | "multi";
   maxVotesPerVoter: number;
   bannerUrl?: string;
+  createdAt?: string;
+  updatedAt?: string;
   voteCount: number;
   candidates: Candidate[];
 }
