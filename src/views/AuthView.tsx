@@ -6,36 +6,33 @@ import { AppView } from "@/src/types";
 import * as React from "react";
 
 interface AuthViewProps {
-  onLogin: (payload: { email: string; password: string; isAdmin: boolean; indexNumber?: string }) => void;
+  onLogin: (payload: { email: string; isAdmin: boolean; indexNumber?: string }) => void;
 }
 
 export function AuthView({ onLogin }: AuthViewProps) {
   const [showAssistance, setShowAssistance] = React.useState(false);
   const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
   const [indexNumber, setIndexNumber] = React.useState("");
   const [mode, setMode] = React.useState<"voter" | "admin">("voter");
   const [error, setError] = React.useState("");
 
   const demoVoterEmail = import.meta.env.VITE_DEMO_VOTER_EMAIL || "voter@civicvote.local";
-  const demoVoterPassword = import.meta.env.VITE_DEMO_VOTER_PASSWORD || "voterpass";
   const demoVoterIndex = import.meta.env.VITE_DEMO_VOTER_INDEX || "0323080083";
 
   React.useEffect(() => {
     if (!import.meta.env.DEV) return;
     setEmail((current) => current || demoVoterEmail);
-    setPassword((current) => current || demoVoterPassword);
     setIndexNumber((current) => current || demoVoterIndex);
-  }, [demoVoterEmail, demoVoterIndex, demoVoterPassword]);
+  }, [demoVoterEmail, demoVoterIndex]);
 
   const validateIndexNumber = (value: string): boolean => {
     const trimmed = value.trim();
     if (mode === "admin") {
       return true;
     }
-    // Require exactly 10 digits
-    if (!/^\d{10}$/.test(trimmed)) {
-      setError("HTU index number must be exactly 10 digits (e.g., 0323080083)");
+    // Require 10 digits starting with 032
+    if (!/^032\d{7}$/.test(trimmed)) {
+      setError("HTU index number must start with 032 and contain 10 digits total (e.g., 0323080083)");
       return false;
     }
     setError("");
@@ -45,9 +42,9 @@ export function AuthView({ onLogin }: AuthViewProps) {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       if (mode === "admin") {
-        onLogin({ email, password, isAdmin: true });
+        onLogin({ email, isAdmin: true });
       } else if (validateIndexNumber(indexNumber)) {
-        onLogin({ email, password, isAdmin: false, indexNumber });
+        onLogin({ email, isAdmin: false, indexNumber });
       }
     }
   };
@@ -85,16 +82,6 @@ export function AuthView({ onLogin }: AuthViewProps) {
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-xs sm:text-sm font-semibold text-on-surface-variant block">Password</label>
-              <Input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.currentTarget.value)}
-              />
-            </div>
-
             {mode === "voter" && (
               <div className="space-y-2">
               <label className="text-xs sm:text-sm font-semibold text-on-surface-variant block">HTU Index Number</label>
@@ -115,12 +102,12 @@ export function AuthView({ onLogin }: AuthViewProps) {
               <Button 
                 className="w-full gap-2 h-12 sm:h-14" 
                 size="xl"
-                disabled={!email.trim() || !password.trim() || (mode === "voter" && indexNumber.trim().length === 0)}
+                disabled={!email.trim() || (mode === "voter" && indexNumber.trim().length === 0)}
                 onClick={() => {
                   if (mode === "admin") {
-                    onLogin({ email, password, isAdmin: true });
+                    onLogin({ email, isAdmin: true });
                   } else if (validateIndexNumber(indexNumber)) {
-                    onLogin({ email, password, isAdmin: false, indexNumber });
+                    onLogin({ email, isAdmin: false, indexNumber });
                   }
                 }}
               >
@@ -128,23 +115,10 @@ export function AuthView({ onLogin }: AuthViewProps) {
                 <span className="sm:hidden">Login</span>
                 <ArrowRight className="w-[18px] h-[18px] sm:w-5 sm:h-5" />
               </Button>
-              {import.meta.env.DEV && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full mt-2 text-xs sm:text-sm"
-                  onClick={() => {
-                    setMode("voter");
-                    setEmail(demoVoterEmail);
-                    setPassword(demoVoterPassword);
-                    setIndexNumber(demoVoterIndex);
-                  }}
-                >
-                  Use demo voter: {demoVoterEmail}
-                </Button>
-              )}
               <p className="mt-3 sm:mt-4 text-center text-xs text-outline leading-tight">
-                By logging in, you agree to the Digital Civic Conduct terms.
+                {mode === "admin"
+                  ? "Admins log in with email only."
+                  : "Voters log in with email and HTU index number."}
               </p>
             </div>
             
@@ -175,7 +149,7 @@ export function AuthView({ onLogin }: AuthViewProps) {
             <Shield className="text-secondary fill-secondary/10 shrink-0 w-[18px] h-[18px] sm:w-5 sm:h-5" />
             <div>
               <p className="text-xs sm:text-sm font-bold text-primary">Data Privacy</p>
-              <p className="text-xs text-on-surface-variant leading-tight">Your index number is used only to start verification in this demo flow.</p>
+              <p className="text-xs text-on-surface-variant leading-tight">Your email and index number are used only to verify against the registry.</p>
             </div>
           </div>
         </div>

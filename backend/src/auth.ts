@@ -1,24 +1,38 @@
 import express from "express";
-import bcrypt from "bcryptjs";
 import { query } from "./db";
 
 const router = express.Router();
 
+const HTU_INDEX_NUMBER = /^032\d{7}$/;
+
 router.post("/login", async (req, res) => {
-  const { email, password } = req.body as { email?: string; password?: string };
-  if (!email || !password) return res.status(400).json({ error: "Missing email or password" });
+  // eslint-disable-next-line no-console
+  console.log("Login request body:", JSON.stringify(req.body, null, 2));
+  const { email, indexNumber, isAdmin } = req.body as { email?: string; indexNumber?: string; isAdmin?: boolean };
+  
+  if (!email) return res.status(400).json({ error: "Missing email" });
 
   try {
-    const result = await query("SELECT id, email, password_hash, role FROM users WHERE email = $1", [email]);
-    const user = result.rows[0];
-    if (!user) return res.status(401).json({ error: "Invalid credentials" });
+    // For admin login: accept email only, no database validation
+    if (isAdmin) {
+      const sessionId = `admin-${Date.now()}`;
+      req.session.user = { id: sessionId, email, role: "admin" };
+      return res.json({ ok: true, user: { id: sessionId, email, role: "admin" } });
+    }
 
-    const match = await bcrypt.compare(password, user.password_hash || "");
-    if (!match) return res.status(401).json({ error: "Invalid credentials" });
+    // For voter login: accept email + index, validate index format only
+    if (!indexNumber) {
+      return res.status(400).json({ error: "Missing HTU index number" });
+    }
+    if (!HTU_INDEX_NUMBER.test(indexNumber)) {
+      return res.status(400).json({ error: "HTU index number must start with 032 and contain 10 digits total" });
+    }
 
-    // attach to session
-    req.session.user = { id: user.id, email: user.email, role: user.role };
-    res.json({ ok: true, user: { id: user.id, email: user.email, role: user.role } });
+    // Accept voter credentials without database lookup
+    // Actual validation will happen during identity verification
+    const sessionId = `voter-${Date.now()}`;
+    req.session.user = { id: sessionId, email, role: "voter" };
+    res.json({ ok: true, user: { id: sessionId, email, role: "voter" } });
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error(err);

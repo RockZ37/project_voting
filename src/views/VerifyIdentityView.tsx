@@ -8,7 +8,7 @@ import "@tensorflow/tfjs-backend-webgl";
 import { Button } from "@/src/components/ui/Button";
 
 interface VerifyIdentityViewProps {
-  onVerify?: () => void;
+  onVerify?: (embedding: number[]) => void;
   onCancel: () => void;
   isAdmin?: boolean;
 }
@@ -26,6 +26,35 @@ export function VerifyIdentityView({ onVerify, onCancel, isAdmin }: VerifyIdenti
   const detectIntervalRef = React.useRef<number | null>(null);
   const detectBusyRef = React.useRef(false);
   const autoStartRef = React.useRef(false);
+  const verificationReportedRef = React.useRef(false);
+
+  const captureEmbedding = React.useCallback(() => {
+    if (!videoRef.current) return null;
+
+    const size = 16;
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) return null;
+
+    context.drawImage(videoRef.current, 0, 0, size, size);
+    const imageData = context.getImageData(0, 0, size, size).data;
+
+    const grayscale = new Array(size * size).fill(0).map((_, index) => {
+      const offset = index * 4;
+      const red = imageData[offset] || 0;
+      const green = imageData[offset + 1] || 0;
+      const blue = imageData[offset + 2] || 0;
+      return (0.299 * red + 0.587 * green + 0.114 * blue) / 255;
+    });
+
+    const mean = grayscale.reduce((sum, value) => sum + value, 0) / grayscale.length;
+    const centered = grayscale.map((value) => value - mean);
+    const magnitude = Math.sqrt(centered.reduce((sum, value) => sum + value * value, 0)) || 1;
+    return centered.map((value) => Number((value / magnitude).toFixed(6)));
+  }, []);
 
   const stopDetectionLoop = React.useCallback(() => {
     if (detectIntervalRef.current !== null) {
@@ -49,18 +78,25 @@ export function VerifyIdentityView({ onVerify, onCancel, isAdmin }: VerifyIdenti
   // When progress reaches 100, finalize verification
   React.useEffect(() => {
     if (isScanning && progress >= 100) {
+      if (verificationReportedRef.current) {
+        return;
+      }
+      verificationReportedRef.current = true;
       // stop scanning animation and camera
       setIsScanning(false);
       stopDetectionLoop();
       stopCamera();
       setScanMessage("Face verified");
       setTimeout(() => {
-        if (onVerify) {
-          onVerify();
+        const embedding = captureEmbedding();
+        if (embedding && onVerify) {
+          onVerify(embedding);
+        } else if (!embedding) {
+          setCameraError("Unable to capture a face sample from the camera feed. Please try again.");
         }
       }, 800);
     }
-  }, [progress, isScanning, onVerify, stopCamera, stopDetectionLoop]);
+  }, [captureEmbedding, onVerify, progress, isScanning, stopCamera, stopDetectionLoop]);
 
   React.useEffect(() => {
     if (!isScanning || !cameraActive || !videoRef.current) {
@@ -148,6 +184,7 @@ export function VerifyIdentityView({ onVerify, onCancel, isAdmin }: VerifyIdenti
     setScanMessage("Opening camera...");
     setFaceDetected(false);
     setProgress(0);
+    verificationReportedRef.current = false;
     stopDetectionLoop();
     stopCamera();
 

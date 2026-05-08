@@ -7,6 +7,7 @@ import { generateId } from "./utils/id";
 import { parseCsv, type CsvRow } from "./utils/csv";
 
 const router = express.Router();
+const HTU_INDEX_NUMBER = /^032\d{7}$/;
 
 /**
  * Registry CSV schema: index_number, name, course, profile_picture_url, date, issue_date, valid_until
@@ -21,6 +22,10 @@ function parseRegistryCsv(rows: CsvRow[]) {
     issue_date: (row.issue_date || row["issue date"] || "").trim(),
     valid_until: (row.valid_until || row["valid until"] || "").trim(),
   }));
+}
+
+function validateRegistryRow(indexNumber: string) {
+  return HTU_INDEX_NUMBER.test(indexNumber.trim());
 }
 
 function isValidDate(dateStr: string): boolean {
@@ -63,10 +68,10 @@ router.post("/upload", requireAuth, async (req, res) => {
     const registryRows = parseRegistryCsv(parsed);
 
     // Validate all rows before inserting
-    const invalid = registryRows.filter((row) => !row.index_number || !row.name);
+    const invalid = registryRows.filter((row) => !row.index_number || !row.name || !validateRegistryRow(row.index_number));
     if (invalid.length > 0) {
       return res.status(400).json({
-        error: `${invalid.length} rows missing index_number or name`,
+        error: `${invalid.length} rows are missing index_number/name or have an invalid HTU index format`,
       });
     }
 
@@ -178,6 +183,10 @@ router.get("/lookup/:indexNumber", async (req, res) => {
   try {
     if (!indexNumber || indexNumber.length === 0) {
       return res.status(400).json({ error: "Index number is required" });
+    }
+
+    if (!validateRegistryRow(indexNumber)) {
+      return res.status(400).json({ error: "HTU index number must start with 032 and contain 10 digits total" });
     }
 
     const result = await query("SELECT id, index_number, name, course, profile_photo_url, issue_date, valid_until, status FROM student_identities WHERE index_number = $1 LIMIT 1", [

@@ -8,10 +8,11 @@ import { Student } from "@/src/types";
 interface VerificationConfirmViewProps {
   student: Student;
   onConfirm: () => void;
+  onEnroll?: () => void;
   onCancel: () => void;
 }
 
-export function VerificationConfirmView({ student, onConfirm, onCancel }: VerificationConfirmViewProps) {
+export function VerificationConfirmView({ student, onConfirm, onCancel, onEnroll }: VerificationConfirmViewProps) {
   const isEligible = student.status === "Active";
 
   return (
@@ -81,15 +82,33 @@ export function VerificationConfirmView({ student, onConfirm, onCancel }: Verifi
           <div className="pt-6 border-t border-outline-variant/30 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-1">
+                HTU Index Number
+              </p>
+              <p className="font-mono font-semibold text-on-surface">{student.indexNumber || student.id}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-1">
                 Department
               </p>
               <p className="font-semibold text-on-surface">{student.department}</p>
             </div>
             <div>
               <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-1">
+                Course
+              </p>
+              <p className="font-semibold text-on-surface">{student.course || student.department}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-1">
                 Status
               </p>
               <p className={student.status === "Active" ? "font-semibold text-green-700" : "font-semibold text-red-700"}>{student.status}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-1">
+                Valid Until
+              </p>
+              <p className="font-semibold text-on-surface">{student.validUntil ? new Date(student.validUntil).toLocaleDateString() : "-"}</p>
             </div>
             <div>
               <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-1">
@@ -136,14 +155,24 @@ export function VerificationConfirmView({ student, onConfirm, onCancel }: Verifi
             {isEligible ? "Proceed to Ballot" : "Ballot Access Blocked"}
             <ArrowRight size={20} />
           </Button>
-          <Button
-            variant="outline"
-            size="lg"
-            className="w-full font-bold h-12"
-            onClick={onCancel}
-          >
-            Cancel and Return
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              size="lg"
+              className="flex-1 font-bold h-12"
+              onClick={onCancel}
+            >
+              Cancel and Return
+            </Button>
+            <Button
+              variant="ghost"
+              size="lg"
+              className="flex-1 font-bold h-12"
+              onClick={() => onEnroll && onEnroll()}
+            >
+              Enroll Face
+            </Button>
+          </div>
         </div>
 
         {/* Info Alert */}

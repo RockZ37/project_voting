@@ -2,6 +2,7 @@ import * as React from "react";
 import { AppView, Candidate, Student, Election, NotificationItem, SessionUser, AuditLog, Voter } from "./types";
 import { Header } from "./components/layout/Header";
 import { AuthView } from "./views/AuthView";
+import { RegistryLookupView } from "./views/RegistryLookupView";
 import { VerifyIdentityView } from "./views/VerifyIdentityView";
 import { VerificationConfirmView } from "./views/VerificationConfirmView";
 import { ElectionsView } from "./views/ElectionsView";
@@ -25,6 +26,8 @@ export default function App() {
   const [sessionUser, setSessionUser] = React.useState<SessionUser | null>(null);
   const [isAdmin, setIsAdmin] = React.useState(false);
   const [verifiedStudent, setVerifiedStudent] = React.useState<Student | null>(null);
+  const [faceEmbedding, setFaceEmbedding] = React.useState<number[] | null>(null);
+  const [enrollMode, setEnrollMode] = React.useState(false);
   const [indexNumber, setIndexNumber] = React.useState<string>("");
   const [selectedCandidate, setSelectedCandidate] = React.useState<Candidate | null>(null);
   const [currentElection, setCurrentElection] = React.useState<Election | null>(null);
@@ -105,20 +108,46 @@ export default function App() {
     void bootstrap();
   }, [loadAdminData, loadElections]);
 
-  const handleLogin = async (payload: { email: string; password: string; isAdmin: boolean; indexNumber?: string }) => {
+  const handleLogin = async (payload: { email: string; isAdmin: boolean; indexNumber?: string }) => {
     try {
-      const user = await api.login(payload.email, payload.password);
+      const user = await api.login(payload.email, payload.indexNumber, payload.isAdmin);
       setSessionUser(user);
-      setIsAdmin(payload.isAdmin || user.role === "admin");
+      const isAdminUser = user.role === "admin";
+      setIsAdmin(isAdminUser);
       setIndexNumber(payload.indexNumber || "");
+      setFaceEmbedding(null);
+      if (payload.isAdmin && !isAdminUser) {
+        addNotification({
+          title: "Admin Access Denied",
+          message: "This account is not an admin account. You were signed in as a voter.",
+          tone: "warning",
+        });
+      }
       addNotification({
         title: "Session Started",
-        message: user.role === "admin" ? "Administrator login verified." : "Voter login verified.",
+        message: isAdminUser ? "Administrator login verified." : "Voter login verified.",
         tone: "success",
       });
-      setCurrentView(AppView.VERIFY);
+      // Admins skip registry lookup and go to admin dashboard
+      setCurrentView(isAdminUser ? AppView.ADMIN_DASHBOARD : AppView.REGISTRY_LOOKUP);
     } catch (error: any) {
       addNotification({ title: "Login Failed", message: error.message || "Invalid credentials", tone: "warning" });
+    }
+  };
+
+  const handleRegistryLookupComplete = async (index: string) => {
+    setIndexNumber(index);
+    try {
+      const resolvedStudent = await api.getStudentByIndex(index);
+      if (!resolvedStudent) {
+        addNotification({ title: "Registry Lookup Failed", message: "Could not load the verified student record.", tone: "warning" });
+        setCurrentView(AppView.AUTH);
+        return;
+      }
+      setVerifiedStudent(resolvedStudent);
+      setCurrentView(AppView.VERIFY);
+    } catch (error: any) {
+      addNotification({ title: "Registry Lookup Failed", message: error.message || "Could not load the verified student record.", tone: "warning" });
     }
   };
 
@@ -128,12 +157,33 @@ export default function App() {
     } finally {
       setSessionUser(null);
       setVerifiedStudent(null);
+      setFaceEmbedding(null);
       setIsAdmin(false);
       setCurrentView(AppView.AUTH);
     }
   };
 
-  const handleVerificationComplete = async () => {
+  const handleVerificationComplete = async (embedding: number[]) => {
+    // enrollment flow: if enrollMode is active, send embedding to enroll endpoint
+    if (enrollMode) {
+      try {
+        await api.enroll(embedding);
+        addNotification({ title: "Enrollment Saved", message: "Your face has been enrolled.", tone: "success" });
+        setEnrollMode(false);
+        const resolvedStudent = verifiedStudent || (indexNumber ? await api.getStudentByIndex(indexNumber) : null);
+        setVerifiedStudent(resolvedStudent);
+        setCurrentView(AppView.VERIFY_CONFIRM);
+        return;
+      } catch (err: any) {
+        addNotification({ title: "Enrollment Failed", message: err.message || "Could not enroll face.", tone: "warning" });
+        setEnrollMode(false);
+        setCurrentView(AppView.VERIFY_CONFIRM);
+        return;
+      }
+    }
+
+    setFaceEmbedding(embedding);
+
     if (isAdmin) {
       await loadAdminData();
       setCurrentView(AppView.ADMIN_DASHBOARD);
@@ -141,8 +191,7 @@ export default function App() {
     }
 
     try {
-      const fromSession = await api.getStudentMe();
-      const resolvedStudent = fromSession || (indexNumber ? await api.getStudentByIndex(indexNumber) : null);
+      const resolvedStudent = verifiedStudent || (indexNumber ? await api.getStudentByIndex(indexNumber) : null);
       if (!resolvedStudent) {
         addNotification({ title: "Student Not Found", message: "No student profile matched this session.", tone: "warning" });
         setCurrentView(AppView.AUTH);
@@ -187,6 +236,11 @@ export default function App() {
   const handleCastVote = React.useCallback(async () => {
     if (!currentElection || !selectedCandidate || !sessionUser) return;
 
+    if (!faceEmbedding) {
+      addNotification({ title: "Verification Required", message: "Complete the face scan before voting.", tone: "warning" });
+      return;
+    }
+
     if (currentElection.status === "Closed") {
       addNotification({ title: "Election Closed", message: `Voting for ${currentElection.title} has ended.`, tone: "warning" });
       return;
@@ -199,7 +253,16 @@ export default function App() {
 
     try {
       const verification = await api.startVerification(currentElection.id, "face");
-      await api.completeVerification(verification.id, "verified", 0.99);
+      const completed = await api.completeVerification(verification.id, { embedding: faceEmbedding });
+
+      if (completed.status !== "verified") {
+        addNotification({
+          title: "Verification Failed",
+          message: completed.notes || `Face match score ${Number(completed.score || 0).toFixed(2)} did not meet the threshold.`,
+          tone: "warning",
+        });
+        return;
+      }
 
       const voterCandidates = await api.getVoters(sessionUser.email);
       const matchedVoter = voterCandidates.find((voter) => voter.email === sessionUser.email);
@@ -219,12 +282,15 @@ export default function App() {
     } catch (error: any) {
       addNotification({ title: "Vote Failed", message: error.message || "Could not cast vote.", tone: "warning" });
     }
-  }, [addNotification, currentElection, loadElections, selectedCandidate, sessionUser, votedElectionIds]);
+  }, [addNotification, currentElection, faceEmbedding, loadElections, selectedCandidate, sessionUser, votedElectionIds]);
 
   const renderView = () => {
     switch (currentView) {
       case AppView.AUTH:
         return <AuthView onLogin={handleLogin} />;
+
+      case AppView.REGISTRY_LOOKUP:
+        return <RegistryLookupView onLookupComplete={(index) => void handleRegistryLookupComplete(index)} onCancel={() => setCurrentView(AppView.AUTH)} />;
 
       case AppView.VERIFY:
         return <VerifyIdentityView onVerify={handleVerificationComplete} onCancel={() => setCurrentView(AppView.AUTH)} isAdmin={isAdmin} />;
@@ -241,6 +307,10 @@ export default function App() {
             onCancel={() => {
               setVerifiedStudent(null);
               setCurrentView(AppView.AUTH);
+            }}
+            onEnroll={() => {
+              setEnrollMode(true);
+              setCurrentView(AppView.VERIFY);
             }}
           />
         ) : null;

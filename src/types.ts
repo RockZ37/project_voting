@@ -1,5 +1,6 @@
 export enum AppView {
   AUTH = 'AUTH',
+  REGISTRY_LOOKUP = 'REGISTRY_LOOKUP',
   VERIFY = 'VERIFY',
   VERIFY_CONFIRM = 'VERIFY_CONFIRM',
   ELECTIONS = 'ELECTIONS',
@@ -49,6 +50,9 @@ export interface Student {
   photoUrl: string;
   department: string;
   registrationDate: string;
+  indexNumber?: string;
+  course?: string;
+  validUntil?: string;
   status: 'Active' | 'Inactive' | 'Suspended';
 }
 

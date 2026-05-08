@@ -5,8 +5,10 @@ import { generateId } from "./utils/id";
 
 const router = Router();
 
+const HTU_INDEX_NUMBER = /^032\d{7}$/;
+
 const StudentCreate = z.object({
-  indexNumber: z.string().min(1),
+  indexNumber: z.string().regex(HTU_INDEX_NUMBER, "HTU index number must start with 032 and contain 10 digits total"),
   name: z.string().min(1),
   course: z.string().optional(),
   profilePhotoUrl: z.string().url().optional(),
@@ -44,6 +46,9 @@ router.post("/", async (req: Request, res: Response) => {
 router.get("/index/:indexNumber", async (req: Request, res: Response) => {
   const { indexNumber } = req.params;
   try {
+    if (!HTU_INDEX_NUMBER.test(indexNumber)) {
+      return res.status(400).json({ error: "HTU index number must start with 032 and contain 10 digits total" });
+    }
     const r = await query("SELECT * FROM student_identities WHERE index_number = $1", [indexNumber]);
     if (r.rowCount === 0) return res.status(404).json({ student: null });
     res.json({ student: r.rows[0] });

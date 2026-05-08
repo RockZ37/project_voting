@@ -89,6 +89,9 @@ function toStudent(row: any): Student {
     photoUrl: row.profile_photo_url || "https://picsum.photos/seed/student/200/240",
     department: row.course || "Unknown",
     registrationDate: row.issue_date || "",
+    indexNumber: row.index_number || row.id,
+    course: row.course || "Unknown",
+    validUntil: row.valid_until || "",
     status: row.status === "active" ? "Active" : row.status === "suspended" ? "Suspended" : "Inactive",
   };
 }
@@ -119,10 +122,12 @@ function normalizePlatform(platform: Candidate["platform"] | undefined) {
 }
 
 export const api = {
-  async login(email: string, password: string) {
+  async login(email: string, indexNumber?: string, isAdmin = false) {
+    const body = { email, indexNumber, isAdmin };
+    console.log("Frontend sending login request:", JSON.stringify(body, null, 2));
     const data = await request<{ user: SessionUser }>("/auth/login", {
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify(body),
     });
     return data.user;
   },
@@ -219,12 +224,33 @@ export const api = {
     return data.session;
   },
 
-  async completeVerification(sessionId: string, status: "verified" | "rejected", score = 1) {
+  async enroll(embedding: number[], studentIdentityId?: string) {
+    const body: any = { embedding };
+    if (studentIdentityId) body.studentIdentityId = studentIdentityId;
+    const data = await request<{ enrollment: any }>("/verification/enroll", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+    return data.enrollment;
+  },
+
+  async completeVerification(
+    sessionId: string,
+    options: { embedding?: number[]; status?: "verified" | "rejected"; score?: number; notes?: string; metadata?: Record<string, unknown> } = {}
+  ) {
     const data = await request<{ session: any }>(`/verification/${sessionId}/complete`, {
       method: "POST",
-      body: JSON.stringify({ status, score }),
+      body: JSON.stringify(options),
     });
     return data.session;
+  },
+
+  async enrollFace(embedding: number[]) {
+    const data = await request<{ enrollment: any }>("/verification/enroll", {
+      method: "POST",
+      body: JSON.stringify({ embedding }),
+    });
+    return data.enrollment;
   },
 
   async castVote(payload: { electionId: string; candidateId: string; verificationSessionId?: string; voterId?: string }) {
@@ -233,5 +259,23 @@ export const api = {
       body: JSON.stringify(payload),
     });
     return data.vote;
+  },
+
+  async lookupStudent(indexNumber: string) {
+    const data = await request<{ student: any }>(`/registry/lookup/${encodeURIComponent(indexNumber)}`);
+    return data.student;
+  },
+
+  async uploadRegistry(csvText: string) {
+    const data = await request<{ message: string; stats: { inserted: number; updated: number; total: number } }>("/registry/upload", {
+      method: "POST",
+      body: JSON.stringify({ csvText }),
+    });
+    return data;
+  },
+
+  async getRegistryStudents(query = "") {
+    const data = await request<{ students: any[] }>(`/registry${query ? `?q=${encodeURIComponent(query)}` : ""}`);
+    return data.students;
   },
 };

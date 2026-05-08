@@ -1,0 +1,11 @@
+index_number,name,course,profile_picture_url,date,issue_date,valid_until
+STU001,John Doe,Computer Science,https://picsum.photos/seed/john/200/200,2024-01-15,2024-01-01,2025-12-31
+STU002,Jane Smith,Engineering,https://picsum.photos/seed/jane/200/200,2024-01-15,2024-01-01,2025-12-31
+STU003,Michael Johnson,Business Administration,https://picsum.photos/seed/michael/200/200,2024-01-15,2024-01-01,2025-12-31
+STU004,Sarah Williams,Medicine,https://picsum.photos/seed/sarah/200/200,2024-01-15,2024-01-01,2025-12-31
+STU005,David Brown,Law,https://picsum.photos/seed/david/200/200,2024-01-15,2024-01-01,2025-12-31
+STU006,Emma Davis,Arts,https://picsum.photos/seed/emma/200/200,2024-01-15,2024-01-01,2025-12-31
+STU007,Robert Wilson,Physics,https://picsum.photos/seed/robert/200/200,2024-01-15,2024-01-01,2025-12-31
+STU008,Lisa Anderson,Chemistry,https://picsum.photos/seed/lisa/200/200,2024-01-15,2024-01-01,2025-12-31
+STU009,James Taylor,Mathematics,https://picsum.photos/seed/james/200/200,2024-01-15,2024-01-01,2025-12-31
+STU010,Mary Martinez,Psychology,https://picsum.photos/seed/mary/200/200,2024-01-15,2024-01-01,2025-12-31

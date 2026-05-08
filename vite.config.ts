@@ -29,6 +29,7 @@ export default defineConfig(({mode}) => {
         '/voters': 'http://127.0.0.1:4000',
         '/votes': 'http://127.0.0.1:4000',
         '/verification': 'http://127.0.0.1:4000',
+        '/registry': 'http://127.0.0.1:4000',
         '/audit-logs': 'http://127.0.0.1:4000',
         '/health': 'http://127.0.0.1:4000',
       },

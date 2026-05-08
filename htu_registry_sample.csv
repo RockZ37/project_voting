@@ -1,0 +1,6 @@
+index_number,name,course,profile_picture_url,date,issue_date,valid_until
+0321234501,Abena Mensah,Computer Science,https://picsum.photos/seed/abena/200/200,2003-05-14,2025-01-10,2026-12-31
+0321234502,Daniel Owusu,Information Technology,https://picsum.photos/seed/daniel/200/200,2002-11-03,2025-01-10,2026-12-31
+0321234503,Efua Boateng,Business Administration,https://picsum.photos/seed/efua/200/200,2003-08-22,2025-01-10,2026-12-31
+0321234504,Kojo Asare,Electrical Engineering,https://picsum.photos/seed/kojo/200/200,2002-02-17,2025-01-10,2026-12-31
+0321234505,Nana Yeboah,Nursing,https://picsum.photos/seed/nana/200/200,2003-09-30,2025-01-10,2026-12-31
