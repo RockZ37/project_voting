@@ -434,7 +434,22 @@ export default function App() {
         );
 
       case AppView.RESULTS:
-        return currentElection ? (
+        if (!currentElection) {
+          return (
+            <BallotPageLayout voteCount={liveVoteCount} onViewResults={() => setCurrentView(AppView.RESULTS)}>
+              <div className="max-w-3xl mx-auto py-16 px-6">
+                <Card className="p-8 text-center">
+                  <p className="text-on-surface-variant">No election selected. Please go to the Elections page and select an election to view results.</p>
+                  <div className="mt-6">
+                    <Button onClick={() => setCurrentView(AppView.ELECTIONS)}>View Elections</Button>
+                  </div>
+                </Card>
+              </div>
+            </BallotPageLayout>
+          );
+        }
+
+        return (
           <BallotPageLayout voteCount={currentElection.voteCount} currentElection={currentElection} selectedCandidateName={selectedCandidate?.name} showResults onViewElections={() => setCurrentView(AppView.ELECTIONS)} onViewResults={() => setCurrentView(AppView.RESULTS)}>
             <div className="max-w-3xl mx-auto py-16 px-6 space-y-8">
               <header className="space-y-3">
@@ -472,7 +487,7 @@ export default function App() {
               </Card>
             </div>
           </BallotPageLayout>
-        ) : null;
+        );
 
       case AppView.ADMIN_DASHBOARD:
         return (
