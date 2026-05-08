@@ -8,11 +8,10 @@ import { Student } from "@/src/types";
 interface VerificationConfirmViewProps {
   student: Student;
   onConfirm: () => void;
-  onEnroll?: () => void;
   onCancel: () => void;
 }
 
-export function VerificationConfirmView({ student, onConfirm, onCancel, onEnroll }: VerificationConfirmViewProps) {
+export function VerificationConfirmView({ student, onConfirm, onCancel }: VerificationConfirmViewProps) {
   const isEligible = student.status === "Active";
 
   return (
@@ -20,6 +19,7 @@ export function VerificationConfirmView({ student, onConfirm, onCancel, onEnroll
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
         className="max-w-2xl w-full space-y-6 sm:space-y-8"
       >
         {/* Success Header */}
@@ -163,14 +163,6 @@ export function VerificationConfirmView({ student, onConfirm, onCancel, onEnroll
               onClick={onCancel}
             >
               Cancel and Return
-            </Button>
-            <Button
-              variant="ghost"
-              size="lg"
-              className="flex-1 font-bold h-12"
-              onClick={() => onEnroll && onEnroll()}
-            >
-              Enroll Face
             </Button>
           </div>
         </div>

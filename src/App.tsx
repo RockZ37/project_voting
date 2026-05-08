@@ -15,7 +15,7 @@ import AdminCreateElectionView from "./views/AdminCreateElectionView";
 import AdminCreateCandidateView from "./views/AdminCreateCandidateView";
 import AdminPageLayout from "./components/layout/AdminPageLayout";
 import { BallotPageLayout } from "./components/layout/BallotPageLayout";
-import { motion, AnimatePresence } from "motion/react";
+import { motion } from "motion/react";
 import { Button } from "./components/ui/Button";
 import { Card } from "./components/ui/Card";
 import { CheckCircle2, Lock, ShieldCheck, Send, Landmark } from "lucide-react";
@@ -285,6 +285,8 @@ export default function App() {
   }, [addNotification, currentElection, faceEmbedding, loadElections, selectedCandidate, sessionUser, votedElectionIds]);
 
   const renderView = () => {
+    // eslint-disable-next-line no-console
+    console.log("Rendering view:", currentView, { verifiedStudent, elections: elections.length, currentElection: currentElection?.title || null });
     switch (currentView) {
       case AppView.AUTH:
         return <AuthView onLogin={handleLogin} />;
@@ -307,10 +309,6 @@ export default function App() {
             onCancel={() => {
               setVerifiedStudent(null);
               setCurrentView(AppView.AUTH);
-            }}
-            onEnroll={() => {
-              setEnrollMode(true);
-              setCurrentView(AppView.VERIFY);
             }}
           />
         ) : null;
@@ -533,11 +531,9 @@ export default function App() {
     <div className="min-h-screen bg-surface selection:bg-secondary/20 transition-colors duration-500">
       <Header currentView={currentView} setView={setCurrentView} isAdmin={isAdmin} student={verifiedStudent} notifications={notifications} onNotificationsToggle={markNotificationsRead} onLogout={() => { void handleLogout(); }} />
       <main className="pt-16 pb-20">
-        <AnimatePresence mode="wait">
-          <motion.div key={currentView} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.35, ease: [0.19, 1, 0.22, 1] }}>
-            {renderView()}
-          </motion.div>
-        </AnimatePresence>
+        <div key={currentView}>
+          {renderView()}
+        </div>
       </main>
     </div>
   );

@@ -62,7 +62,13 @@ export function ElectionsView({ elections, onSelectElection, onViewChange }: Ele
         </p>
       </header>
 
-      {categories.map((category) => {
+      {elections.length === 0 ? (
+        <Card className="p-8 text-center">
+          <p className="text-on-surface-variant">No elections available at this time.</p>
+        </Card>
+      ) : (
+        <>
+          {categories.map((category) => {
             const categoryElections = elections.filter((e) => e.category === category);
         return (
           <div key={category} className="space-y-4">
@@ -149,7 +155,9 @@ export function ElectionsView({ elections, onSelectElection, onViewChange }: Ele
             </div>
           </div>
         );
-      })}
+          })}
+        </>
+      )}
     </div>
   );
 }
