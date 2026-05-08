@@ -435,15 +435,76 @@ export default function App() {
 
       case AppView.RESULTS:
         if (!currentElection) {
+          const closed = elections.filter((e) => e.status === "Closed");
+          if (closed.length === 0) {
+            return (
+              <BallotPageLayout voteCount={liveVoteCount} onViewResults={() => setCurrentView(AppView.RESULTS)}>
+                <div className="max-w-3xl mx-auto py-16 px-6">
+                  <Card className="p-8 text-center">
+                    <p className="text-on-surface-variant">No results available yet. Check back after elections close.</p>
+                    <div className="mt-6">
+                      <Button onClick={() => setCurrentView(AppView.ELECTIONS)}>View Elections</Button>
+                    </div>
+                  </Card>
+                </div>
+              </BallotPageLayout>
+            );
+          }
+
           return (
             <BallotPageLayout voteCount={liveVoteCount} onViewResults={() => setCurrentView(AppView.RESULTS)}>
-              <div className="max-w-3xl mx-auto py-16 px-6">
-                <Card className="p-8 text-center">
-                  <p className="text-on-surface-variant">No election selected. Please go to the Elections page and select an election to view results.</p>
-                  <div className="mt-6">
-                    <Button onClick={() => setCurrentView(AppView.ELECTIONS)}>View Elections</Button>
-                  </div>
-                </Card>
+              <div className="max-w-4xl mx-auto py-16 px-6 space-y-8">
+                <header className="space-y-3">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-secondary">Election Results</p>
+                  <h1 className="text-4xl font-black tracking-tight text-on-surface">Recent Results</h1>
+                </header>
+
+                {closed.map((election) => {
+                  const winner = election.candidates.reduce((best, c) => (c.voteCount || 0) > (best.voteCount || 0) ? c : best, election.candidates[0]);
+                  return (
+                    <Card key={election.id} className="p-6 space-y-4" >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h2 className="text-xl font-bold">{election.title}</h2>
+                          <p className="text-sm text-on-surface-variant">{election.description}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-on-surface-variant">Total votes</p>
+                          <p className="text-2xl font-black">{election.voteCount.toLocaleString()}</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {election.candidates.map((candidate) => (
+                          <div key={candidate.id} className="p-4 rounded-lg border bg-white/60 flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-lg overflow-hidden">
+                              <img src={candidate.photoUrl} alt={candidate.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <p className="font-bold">{candidate.name}</p>
+                                  <p className="text-xs text-on-surface-variant">{candidate.party}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-black">{(candidate.voteCount || 0).toLocaleString()}</p>
+                                  <p className="text-xs text-on-surface-variant">votes</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {winner && (
+                        <div className="pt-4 border-t">
+                          <p className="text-sm text-on-surface-variant">Winner</p>
+                          <p className="text-lg font-bold">{winner.name} — {(winner.voteCount || 0).toLocaleString()} votes</p>
+                        </div>
+                      )}
+                    </Card>
+                  );
+                })}
               </div>
             </BallotPageLayout>
           );
