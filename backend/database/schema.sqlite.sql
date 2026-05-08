@@ -123,3 +123,15 @@ CREATE INDEX IF NOT EXISTS idx_verification_voter_election ON verification_sessi
 CREATE UNIQUE INDEX IF NOT EXISTS uq_votes_election_voter
 ON votes (election_id, voter_id)
 WHERE voter_id IS NOT NULL;
+
+-- Face / embedding storage for student identities
+CREATE TABLE IF NOT EXISTS student_face_embeddings (
+  id TEXT PRIMARY KEY,
+  student_identity_id TEXT REFERENCES student_identities(id) ON DELETE CASCADE,
+  model TEXT,
+  embedding TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_student_face_embeddings_student_id
+ON student_face_embeddings(student_identity_id);

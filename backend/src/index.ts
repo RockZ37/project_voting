@@ -9,6 +9,7 @@ import electionsRouter from "./elections";
 import votersRouter from "./voters";
 import votesRouter from "./votes";
 import verificationRouter from "./verification";
+import registryRouter from "./registry";
 import auditLogsRouter from "./auditLogs";
 import { applySecurityHeaders, basicRateLimit } from "./middleware/security";
 
@@ -45,6 +46,7 @@ app.use("/elections", electionsRouter);
 app.use("/voters", votersRouter);
 app.use("/votes", votesRouter);
 app.use("/verification", verificationRouter);
+app.use("/registry", registryRouter);
 app.use("/audit-logs", auditLogsRouter);
 
 app.get("/health", (_req, res) => {

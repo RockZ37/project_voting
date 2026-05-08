@@ -75,7 +75,7 @@ function mapSql(sql: string) {
 function normalizeRow(row: any) {
   if (!row || typeof row !== "object") return row;
   const normalized = { ...row };
-  for (const key of ["platform", "metadata", "sess"]) {
+  for (const key of ["platform", "metadata", "sess", "embedding"]) {
     const value = normalized[key];
     if (typeof value === "string") {
       try {

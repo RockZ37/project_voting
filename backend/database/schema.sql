@@ -128,3 +128,15 @@ WHERE voter_id IS NOT NULL;
 
 -- Note: gen_random_uuid() requires the pgcrypto or pgcrypto-like extension.
 -- Use: CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- Face / embedding storage for student identities
+CREATE TABLE IF NOT EXISTS student_face_embeddings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_identity_id UUID REFERENCES student_identities(id) ON DELETE CASCADE,
+  model TEXT,
+  embedding JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_student_face_embeddings_student_id
+ON student_face_embeddings(student_identity_id);
