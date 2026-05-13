@@ -46,10 +46,23 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   return data as T;
 }
 
-function mapElectionStatus(status?: string): Election["status"] {
+export function resolveElectionStatus(row: { status?: string; startAt?: string; endAt?: string; start_at?: string; end_at?: string; createdAt?: string; created_at?: string }): Election["status"] {
+  const status = String(row.status || "draft").toLowerCase();
+  const startValue = row.startAt || row.start_at;
+  const endValue = row.endAt || row.end_at;
+  const createdValue = row.createdAt || row.created_at;
+  const startAt = startValue ? new Date(startValue).getTime() : null;
+  const endAt = endValue ? new Date(endValue).getTime() : null;
+  const createdAt = createdValue ? new Date(createdValue).getTime() : null;
+  const now = Date.now();
+
+  if (endAt !== null && now >= endAt) return "Closed";
+  if (startAt !== null && now < startAt) return "Upcoming";
+  if (startAt !== null && now >= startAt) return "Open";
   if (status === "active") return "Open";
   if (status === "closed") return "Closed";
-  return "Upcoming";
+  if (status === "draft") return createdAt !== null && now >= createdAt ? "Open" : "Upcoming";
+  return status === "upcoming" ? "Upcoming" : "Upcoming";
 }
 
 function toCandidate(row: any): Candidate {
@@ -70,7 +83,9 @@ function toElection(row: any, candidates: Candidate[] = []): Election {
     title: row.title,
     category: row.category || "General",
     description: row.description || "",
-    status: mapElectionStatus(row.status),
+    status: resolveElectionStatus(row),
+    startAt: row.start_at || undefined,
+    endAt: row.end_at || undefined,
     ballotType: row.ballot_type === "multi" ? "multi" : "single",
     maxVotesPerVoter: Number(row.max_votes_per_voter || 1),
     bannerUrl: row.banner_url || undefined,
@@ -159,6 +174,8 @@ export const api = {
         category: input.category,
         description: input.description,
         status: input.status === "Open" ? "active" : input.status === "Closed" ? "closed" : "draft",
+        startAt: input.startAt ? new Date(input.startAt).toISOString() : undefined,
+        endAt: input.endAt ? new Date(input.endAt).toISOString() : undefined,
         ballotType: input.ballotType || "single",
         maxVotesPerVoter: input.maxVotesPerVoter || 1,
         bannerUrl: input.bannerUrl,
@@ -216,10 +233,13 @@ export const api = {
     return logs;
   },
 
-  async startVerification(electionId: string, method = "face") {
+  async startVerification(
+    electionId: string,
+    options: { method?: string; studentIdentityId?: string; indexNumber?: string } = {}
+  ) {
     const data = await request<{ session: any }>("/verification/start", {
       method: "POST",
-      body: JSON.stringify({ electionId, method }),
+      body: JSON.stringify({ electionId, method: options.method ?? "face", studentIdentityId: options.studentIdentityId, indexNumber: options.indexNumber }),
     });
     return data.session;
   },

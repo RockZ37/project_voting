@@ -4,6 +4,7 @@ import { Card } from "@/src/components/ui/Card";
 import { Election, AppView } from "@/src/types";
 import { cn } from "@/src/lib/utils";
 import { Button } from "@/src/components/ui/Button";
+import { resolveElectionStatus } from "@/src/lib/api";
 
 interface ElectionsViewProps {
   elections: Election[];
@@ -78,11 +79,14 @@ export function ElectionsView({ elections, onSelectElection, onViewChange }: Ele
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {categoryElections.map((election) => (
+                (() => {
+                  const liveStatus = resolveElectionStatus(election);
+                  return (
                 <Card
                   key={election.id}
                   className={cn(
                     "p-5 sm:p-6 transition-all cursor-pointer hover:shadow-lg group border-2",
-                    getStatusColor(election.status)
+                    getStatusColor(liveStatus)
                   )}
                 >
                   <div className="space-y-4">
@@ -111,14 +115,14 @@ export function ElectionsView({ elections, onSelectElection, onViewChange }: Ele
                     )}
 
                     <div className="flex items-center gap-2 py-2 px-3 bg-white/60 rounded-lg w-fit">
-                      {getStatusIcon(election.status)}
+                      {getStatusIcon(liveStatus)}
                       <span className={cn(
                         "text-xs font-bold uppercase tracking-wider",
-                        election.status === "Open" ? "text-green-700" :
-                        election.status === "Upcoming" ? "text-orange-700" :
+                        liveStatus === "Open" ? "text-green-700" :
+                        liveStatus === "Upcoming" ? "text-orange-700" :
                         "text-red-700"
                       )}>
-                        {election.status}
+                        {liveStatus}
                       </span>
                     </div>
 
@@ -146,11 +150,13 @@ export function ElectionsView({ elections, onSelectElection, onViewChange }: Ele
                         }}
                         className="ml-2"
                       >
-                        {election.status === "Open" ? "Vote" : "View"}
+                        {liveStatus === "Open" ? "Vote" : "View"}
                       </Button>
                     </div>
                   </div>
                 </Card>
+                  );
+                })()
               ))}
             </div>
           </div>

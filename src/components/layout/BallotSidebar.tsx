@@ -2,6 +2,7 @@ import { Landmark, Vote } from "lucide-react";
 import { Sidebar, SidebarSection, Widget } from "@/src/components/layout/Sidebar";
 import { Election } from "@/src/types";
 import { Button } from "@/src/components/ui/Button";
+import { resolveElectionStatus } from "@/src/lib/api";
 
 interface BallotSidebarProps {
   voteCount: number;
@@ -13,6 +14,8 @@ interface BallotSidebarProps {
 }
 
 export function BallotSidebar({ voteCount, currentElection, selectedCandidateName, showResults = false, onViewElections, onViewResults }: BallotSidebarProps) {
+  const liveStatus = currentElection ? resolveElectionStatus(currentElection) : null;
+
   return (
     <Sidebar>
       {currentElection ? (
@@ -31,8 +34,8 @@ export function BallotSidebar({ voteCount, currentElection, selectedCandidateNam
                 <div className="pt-2 border-t border-outline-variant/30">
                   <p className="text-xs text-on-surface-variant pb-1">Status</p>
                   <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${currentElection.status === 'Open' ? 'bg-green-600' : 'bg-orange-600'}`}></div>
-                    <span className="text-sm font-semibold text-on-surface">{currentElection.status}</span>
+                    <div className={`w-2 h-2 rounded-full ${liveStatus === 'Open' ? 'bg-green-600' : 'bg-orange-600'}`}></div>
+                    <span className="text-sm font-semibold text-on-surface">{liveStatus}</span>
                   </div>
                 </div>
               </div>

@@ -19,7 +19,7 @@ import { motion } from "motion/react";
 import { Button } from "./components/ui/Button";
 import { Card } from "./components/ui/Card";
 import { CheckCircle2, Lock, ShieldCheck, Send, Landmark } from "lucide-react";
-import { api } from "./lib/api";
+import { api, resolveElectionStatus } from "./lib/api";
 
 export default function App() {
   const [currentView, setCurrentView] = React.useState<AppView>(AppView.AUTH);
@@ -38,8 +38,11 @@ export default function App() {
   const [votedElectionIds, setVotedElectionIds] = React.useState<Record<string, boolean>>({});
   const [notifications, setNotifications] = React.useState<NotificationItem[]>([]);
   const notificationTimersRef = React.useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const [statusClock, setStatusClock] = React.useState(0);
 
   const hasVotedForCurrentElection = currentElection ? Boolean(votedElectionIds[currentElection.id]) : false;
+  const currentElectionStatus = React.useMemo(() => (currentElection ? resolveElectionStatus(currentElection) : null), [currentElection, statusClock]);
+  const votingIsOpen = currentElectionStatus === "Open";
   const liveVoteCount = React.useMemo(() => elections.reduce((acc, election) => acc + election.voteCount, 0), [elections]);
 
   const addNotification = React.useCallback((notification: Omit<NotificationItem, "id" | "createdAt" | "read">) => {
@@ -59,22 +62,40 @@ export default function App() {
     };
   }, []);
 
+  React.useEffect(() => {
+    const timerId = window.setInterval(() => {
+      setStatusClock((value) => value + 1);
+    }, 15_000);
+
+    return () => window.clearInterval(timerId);
+  }, []);
+
   const markNotificationsRead = React.useCallback(() => {
     setNotifications((current) => current.map((notification) => ({ ...notification, read: true })));
   }, []);
 
-  const loadElections = React.useCallback(async () => {
+  const loadElections = React.useCallback(async (options: { silent?: boolean } = {}) => {
     try {
       const data = await api.getElections();
       setElections(data);
-      if (currentElection) {
-        const refreshed = data.find((e) => e.id === currentElection.id) || null;
-        setCurrentElection(refreshed);
-      }
+      setCurrentElection((current) => {
+        if (!current) return current;
+        return data.find((e) => e.id === current.id) || null;
+      });
     } catch (error: any) {
-      addNotification({ title: "Failed to load elections", message: error.message || "Could not reach backend.", tone: "warning" });
+      if (!options.silent) {
+        addNotification({ title: "Failed to load elections", message: error.message || "Could not reach backend.", tone: "warning" });
+      }
     }
-  }, [addNotification, currentElection]);
+  }, [addNotification]);
+
+  React.useEffect(() => {
+    const refreshId = window.setInterval(() => {
+      void loadElections({ silent: true });
+    }, 60_000);
+
+    return () => window.clearInterval(refreshId);
+  }, [loadElections]);
 
   const loadAdminData = React.useCallback(async () => {
     try {
@@ -236,13 +257,19 @@ export default function App() {
   const handleCastVote = React.useCallback(async () => {
     if (!currentElection || !selectedCandidate || !sessionUser) return;
 
-    if (!faceEmbedding) {
-      addNotification({ title: "Verification Required", message: "Complete the face scan before voting.", tone: "warning" });
+    if (resolveElectionStatus(currentElection) !== "Open") {
+      addNotification({
+        title: resolveElectionStatus(currentElection) === "Closed" ? "Election Closed" : "Voting Not Open Yet",
+        message: resolveElectionStatus(currentElection) === "Closed"
+          ? `Voting for ${currentElection.title} has ended.`
+          : `Voting for ${currentElection.title} has not opened yet. Please check the election schedule.`,
+        tone: "warning",
+      });
       return;
     }
 
-    if (currentElection.status === "Closed") {
-      addNotification({ title: "Election Closed", message: `Voting for ${currentElection.title} has ended.`, tone: "warning" });
+    if (!faceEmbedding) {
+      addNotification({ title: "Verification Required", message: "Complete the face scan before voting.", tone: "warning" });
       return;
     }
 
@@ -252,7 +279,10 @@ export default function App() {
     }
 
     try {
-      const verification = await api.startVerification(currentElection.id, "face");
+      const verification = await api.startVerification(currentElection.id, {
+        method: "face",
+        indexNumber: verifiedStudent?.indexNumber || verifiedStudent?.id,
+      });
       const completed = await api.completeVerification(verification.id, { embedding: faceEmbedding });
 
       if (completed.status !== "verified") {
@@ -282,7 +312,7 @@ export default function App() {
     } catch (error: any) {
       addNotification({ title: "Vote Failed", message: error.message || "Could not cast vote.", tone: "warning" });
     }
-  }, [addNotification, currentElection, faceEmbedding, loadElections, selectedCandidate, sessionUser, votedElectionIds]);
+  }, [addNotification, currentElection, faceEmbedding, loadElections, selectedCandidate, sessionUser, verifiedStudent, votedElectionIds]);
 
   const renderView = () => {
     // eslint-disable-next-line no-console
@@ -393,8 +423,8 @@ export default function App() {
               </Card>
 
               <div className="flex flex-col gap-4">
-                <Button size="xl" className="h-20 w-full text-lg" onClick={handleCastVote} disabled={hasVotedForCurrentElection || !selectedCandidate}>
-                  {hasVotedForCurrentElection ? "Vote Already Cast" : "Seal and Cast My Vote"}
+                <Button size="xl" className="h-20 w-full text-lg" onClick={handleCastVote} disabled={hasVotedForCurrentElection || !selectedCandidate || !votingIsOpen}>
+                  {hasVotedForCurrentElection ? "Vote Already Cast" : !votingIsOpen ? (currentElectionStatus === "Closed" ? "Voting Closed" : "Voting Not Open Yet") : "Seal and Cast My Vote"}
                   <Send size={20} className="ml-2" />
                 </Button>
                 <Button variant="outline" size="lg" className="w-full font-bold h-14" onClick={() => setCurrentView(AppView.ELECTION_DETAIL)}>

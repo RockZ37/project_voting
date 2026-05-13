@@ -10,6 +10,8 @@ const ElectionCreate = z.object({
   category: z.string().optional(),
   description: z.string().optional(),
   status: z.string().default("draft"),
+  startAt: z.union([z.string(), z.null()]).optional(),
+  endAt: z.union([z.string(), z.null()]).optional(),
   ballotType: z.string().default("single"),
   maxVotesPerVoter: z.number().int().positive().optional(),
   bannerUrl: z.union([z.string().url(), z.string().startsWith("data:image/")]).optional(),
@@ -26,19 +28,50 @@ const CandidateCreate = z.object({
 const ElectionPatch = ElectionCreate.partial();
 const CandidatePatch = CandidateCreate.partial();
 
+function parseDate(value: unknown) {
+  if (!value || typeof value !== "string") return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
+
+export function resolveElectionStatus(row: { status?: string; start_at?: string | null; end_at?: string | null; created_at?: string | null }) {
+  const rawStatus = String(row.status || "draft").toLowerCase();
+  if (rawStatus === "closed") return "closed";
+
+  const startAt = row.start_at ? new Date(row.start_at).getTime() : null;
+  const endAt = row.end_at ? new Date(row.end_at).getTime() : null;
+  const createdAt = row.created_at ? new Date(row.created_at).getTime() : null;
+  const now = Date.now();
+
+  if (endAt !== null && now >= endAt) return "closed";
+  if (startAt !== null && now < startAt) return "upcoming";
+  if (startAt !== null && now >= startAt) return "active";
+  if (rawStatus === "active") return "active";
+  if (rawStatus === "draft") return createdAt !== null && now >= createdAt ? "active" : "upcoming";
+  if (rawStatus === "upcoming") return "upcoming";
+  return rawStatus;
+}
+
+function serializeElection(row: any) {
+  return {
+    ...row,
+    status: resolveElectionStatus(row),
+  };
+}
+
 router.post("/", async (req, res) => {
   const parsed = ElectionCreate.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.format() });
-  const { title, category, description, status, ballotType, maxVotesPerVoter, bannerUrl } = parsed.data;
+  const { title, category, description, status, startAt, endAt, ballotType, maxVotesPerVoter, bannerUrl } = parsed.data;
   try {
     const id = generateId();
     const r = await query(
-      `INSERT INTO elections (id, title, category, description, status, ballot_type, max_votes_per_voter, banner_url)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+      `INSERT INTO elections (id, title, category, description, status, start_at, end_at, ballot_type, max_votes_per_voter, banner_url)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
        RETURNING *`,
-      [id, title, category ?? null, description ?? null, status, ballotType, maxVotesPerVoter ?? 1, bannerUrl ?? null]
+      [id, title, category ?? null, description ?? null, status, parseDate(startAt), parseDate(endAt), ballotType, maxVotesPerVoter ?? 1, bannerUrl ?? null]
     );
-    res.status(201).json({ election: r.rows[0] });
+    res.status(201).json({ election: serializeElection(r.rows[0]) });
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error(err);
@@ -49,7 +82,7 @@ router.post("/", async (req, res) => {
 router.get("/", async (_req, res) => {
   try {
     const r = await query("SELECT * FROM elections ORDER BY created_at DESC");
-    res.json({ elections: r.rows });
+    res.json({ elections: r.rows.map(serializeElection) });
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error(err);
@@ -63,7 +96,7 @@ router.get("/:id", async (req, res) => {
     const er = await query("SELECT * FROM elections WHERE id = $1", [id]);
     if (er.rowCount === 0) return res.status(404).json({ election: null });
     const cr = await query("SELECT * FROM candidates WHERE election_id = $1 ORDER BY created_at", [id]);
-    res.json({ election: er.rows[0], candidates: cr.rows });
+    res.json({ election: serializeElection(er.rows[0]), candidates: cr.rows });
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error(err);
@@ -81,6 +114,8 @@ router.patch("/:id", async (req, res) => {
     category: "category",
     description: "description",
     status: "status",
+    startAt: "start_at",
+    endAt: "end_at",
     ballotType: "ballot_type",
     maxVotesPerVoter: "max_votes_per_voter",
     bannerUrl: "banner_url",
@@ -103,7 +138,7 @@ router.patch("/:id", async (req, res) => {
     const sql = `UPDATE elections SET ${updates.join(", ")}, updated_at = now() WHERE id = $${idx} RETURNING *`;
     const r = await query(sql, values);
     if (r.rowCount === 0) return res.status(404).json({ error: "Election not found" });
-    res.json({ election: r.rows[0] });
+    res.json({ election: serializeElection(r.rows[0]) });
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error(err);

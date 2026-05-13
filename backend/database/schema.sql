@@ -51,6 +51,8 @@ CREATE TABLE IF NOT EXISTS elections (
   category TEXT,
   description TEXT,
   status TEXT NOT NULL,
+  start_at TIMESTAMP WITH TIME ZONE,
+  end_at TIMESTAMP WITH TIME ZONE,
   ballot_type TEXT NOT NULL DEFAULT 'single',
   max_votes_per_voter INT DEFAULT 1,
   banner_url TEXT,

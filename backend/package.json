@@ -3,11 +3,16 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3"
+    ]
+  },
   "scripts": {
-    "dev": "NODE_OPTIONS=--dns-result-order=ipv4first tsx src/index.ts",
-    "migrate": "NODE_OPTIONS=--dns-result-order=ipv4first tsx src/migrate.ts",
-    "seed:admin": "NODE_OPTIONS=--dns-result-order=ipv4first tsx src/seeds/createAdmin.ts",
-    "seed:demo-voter": "NODE_OPTIONS=--dns-result-order=ipv4first tsx src/seeds/createDemoVoter.ts",
+    "dev": "set NODE_OPTIONS=--dns-result-order=ipv4first && tsx src/index.ts",
+    "migrate": "set NODE_OPTIONS=--dns-result-order=ipv4first && tsx src/migrate.ts",
+    "seed:admin": "set NODE_OPTIONS=--dns-result-order=ipv4first && tsx src/seeds/createAdmin.ts",
+    "seed:demo-voter": "set NODE_OPTIONS=--dns-result-order=ipv4first && tsx src/seeds/createDemoVoter.ts",
     "build": "tsc -p .",
     "start": "node dist/index.js",
     "lint": "tsc --noEmit",
@@ -15,7 +20,7 @@
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
-    "better-sqlite3": "^11.10.0",
+    "better-sqlite3": "^12.10.0",
     "connect-pg-simple": "^8.0.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",

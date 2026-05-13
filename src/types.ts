@@ -34,6 +34,8 @@ export interface Election {
   category: string;
   description: string;
   status: ElectionStatus;
+  startAt?: string;
+  endAt?: string;
   ballotType: "single" | "multi";
   maxVotesPerVoter: number;
   bannerUrl?: string;

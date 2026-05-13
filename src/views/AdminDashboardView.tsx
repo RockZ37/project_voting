@@ -56,7 +56,7 @@ export function AdminDashboardView({
       title: newElectionTitle,
       category: newElectionCategory || "General",
       description: newElectionDescription || "",
-      status: "Upcoming" as const,
+      status: "Open" as const,
       ballotType: "single" as const,
       maxVotesPerVoter: 1,
       bannerUrl: "",

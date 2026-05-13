@@ -6,6 +6,7 @@ import { cn } from "@/src/lib/utils";
 import { CandidateReviewModal } from "@/src/components/CandidateReviewModal";
 import { BallotPageLayout } from "@/src/components/layout/BallotPageLayout";
 import { Button } from "@/src/components/ui/Button";
+import { resolveElectionStatus } from "@/src/lib/api";
 
 interface ElectionDetailViewProps {
   election: Election | null;
@@ -20,6 +21,8 @@ export function ElectionDetailView({ election, student, onSelect, onBack, hasVot
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [modalOpen, setModalOpen] = React.useState(false);
   const [modalCandidate, setModalCandidate] = React.useState<Candidate | null>(null);
+  const votingStatus = resolveElectionStatus(election);
+  const votingIsOpen = votingStatus === "Open";
 
   if (!election) {
     return (
@@ -32,7 +35,7 @@ export function ElectionDetailView({ election, student, onSelect, onBack, hasVot
   }
 
   const handleSelect = (candidate: Candidate) => {
-    if (hasVoted) return;
+    if (hasVoted || !votingIsOpen) return;
     setModalCandidate(candidate);
     setModalOpen(true);
   };
@@ -57,6 +60,16 @@ export function ElectionDetailView({ election, student, onSelect, onBack, hasVot
           </Card>
         )}
 
+        {!votingIsOpen && (
+          <Card className="p-5 border-2 border-orange-300 bg-orange-50">
+            <p className="text-sm font-semibold text-on-surface">
+              {votingStatus === "Closed"
+                ? "Voting for this election has ended. You can still review the candidates and results."
+                : "Voting for this election has not opened yet. The button will stay disabled until the election becomes active."}
+            </p>
+          </Card>
+        )}
+
         <button
           onClick={onBack}
           className="flex items-center gap-2 text-secondary hover:text-secondary/80 font-semibold transition-colors"
@@ -70,7 +83,7 @@ export function ElectionDetailView({ election, student, onSelect, onBack, hasVot
             {election.title}
           </h1>
           <p className="text-on-surface-variant text-base leading-relaxed">
-            {election.description} - Select one candidate from the list below. You can review your choice before final submission.
+            {election.description} - {votingStatus}. Select one candidate from the list below. You can review your choice before final submission.
           </p>
         </header>
 
@@ -86,7 +99,7 @@ export function ElectionDetailView({ election, student, onSelect, onBack, hasVot
                   key={candidate.id}
                   className={cn(
                     "p-5 sm:p-8 transition-all group relative hover:shadow-lg",
-                    hasVoted ? "cursor-not-allowed opacity-70" : "cursor-pointer",
+                    hasVoted || !votingIsOpen ? "cursor-not-allowed opacity-70" : "cursor-pointer",
                     selectedId === candidate.id
                       ? "border-3 border-secondary bg-surface-container-low shadow-md scale-[1.01]"
                       : "hover:border-outline"

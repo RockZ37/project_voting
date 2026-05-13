@@ -13,6 +13,8 @@ const MATCH_THRESHOLD = Number(process.env.FACE_MATCH_THRESHOLD || 0.78);
 const StartSchema = z.object({
   electionId: z.string().uuid(),
   voterId: z.string().uuid().optional(),
+  studentIdentityId: z.string().uuid().optional(),
+  indexNumber: z.string().optional(),
   method: z.string().optional(),
   ttlMinutes: z.number().int().positive().max(120).optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
@@ -54,6 +56,20 @@ function extractStoredEmbedding(row: any): number[] {
   return [];
 }
 
+async function resolveStudentIdentityForActor(tx: typeof query, input: { studentIdentityId?: string; indexNumber?: string }) {
+  if (input.studentIdentityId) {
+    const byId = await tx("SELECT id, index_number, name, course FROM student_identities WHERE id = $1 LIMIT 1", [input.studentIdentityId]);
+    return byId.rows[0] || null;
+  }
+
+  if (input.indexNumber) {
+    const byIndex = await tx("SELECT id, index_number, name, course FROM student_identities WHERE index_number = $1 LIMIT 1", [input.indexNumber]);
+    return byIndex.rows[0] || null;
+  }
+
+  return null;
+}
+
 async function resolveStudentIdentityId(tx: typeof query, voterId: string) {
   const voter = await tx("SELECT student_identity_id FROM voters WHERE id = $1 LIMIT 1", [voterId]);
   const studentIdentityId = voter.rows[0]?.student_identity_id;
@@ -85,6 +101,70 @@ async function insertFaceEmbedding(tx: typeof query, studentIdentityId: string, 
   return row.rows[0];
 }
 
+async function resolveVoterIdForActor(tx: typeof query, actor: { id?: string; email?: string } | undefined) {
+  if (!actor?.id) return undefined;
+
+  const byUserId = await tx("SELECT id, user_id FROM voters WHERE user_id = $1 LIMIT 1", [actor.id]);
+  const voterRow = byUserId.rows[0];
+  if (voterRow?.id) return voterRow.id as string;
+
+  if (actor.email) {
+    const byEmail = await tx("SELECT id, user_id FROM voters WHERE email = $1 LIMIT 1", [actor.email]);
+    const emailRow = byEmail.rows[0];
+    if (emailRow?.id) {
+      if (emailRow.user_id !== actor.id) {
+        await tx("UPDATE voters SET user_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2", [actor.id, emailRow.id]);
+      }
+      return emailRow.id as string;
+    }
+  }
+
+  return undefined;
+}
+
+async function resolveOrCreateVoterId(
+  tx: typeof query,
+  actor: { id?: string; email?: string } | undefined,
+  studentRow: { id: string; index_number?: string; name?: string; course?: string } | null
+) {
+  if (actor?.id) {
+    const byUserId = await tx("SELECT id, user_id, student_identity_id, name, email, department FROM voters WHERE user_id = $1 LIMIT 1", [actor.id]);
+    const voterRow = byUserId.rows[0];
+    if (voterRow?.id) {
+      if (studentRow && voterRow.student_identity_id !== studentRow.id) {
+        await tx(
+          "UPDATE voters SET student_identity_id = $1, name = COALESCE(NULLIF(name, email), $2), department = COALESCE(department, $3), updated_at = CURRENT_TIMESTAMP WHERE id = $4",
+          [studentRow.id, studentRow.name, studentRow.course ?? null, voterRow.id]
+        );
+      }
+      return voterRow.id as string;
+    }
+  }
+
+  if (studentRow?.id) {
+    const byStudent = await tx("SELECT id, user_id FROM voters WHERE student_identity_id = $1 LIMIT 1", [studentRow.id]);
+    const voterRow = byStudent.rows[0];
+    if (voterRow?.id) {
+      if (actor?.id && voterRow.user_id !== actor.id) {
+        await tx("UPDATE voters SET user_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2", [actor.id, voterRow.id]);
+      }
+      return voterRow.id as string;
+    }
+
+    if (actor?.id || actor?.email || studentRow) {
+      const voterId = generateId();
+      await tx(
+        `INSERT INTO voters (id, user_id, student_identity_id, name, email, registration_date, status, department)
+         VALUES ($1, $2, $3, $4, $5, CURRENT_DATE, 'active', $6)` ,
+        [voterId, actor?.id ?? null, studentRow.id, studentRow.name || actor?.email || "Voter", actor?.email ?? null, studentRow.course ?? null]
+      );
+      return voterId;
+    }
+  }
+
+  return resolveVoterIdForActor(tx, actor);
+}
+
 router.use(requireAuth);
 
 router.post("/start", async (req, res) => {
@@ -100,8 +180,11 @@ router.post("/start", async (req, res) => {
     const r = await withTransaction(async (tx) => {
       voterId = parsed.data.voterId;
       if (!voterId) {
-        const vr = await tx("SELECT id FROM voters WHERE user_id = $1 LIMIT 1", [actor?.id]);
-        voterId = vr.rows[0]?.id;
+        const studentRow = await resolveStudentIdentityForActor(tx, {
+          studentIdentityId: parsed.data.studentIdentityId,
+          indexNumber: parsed.data.indexNumber,
+        });
+        voterId = await resolveOrCreateVoterId(tx, actor, studentRow);
       }
       if (!voterId) {
         throw new Error("No voter profile linked to user");
@@ -110,13 +193,13 @@ router.post("/start", async (req, res) => {
       const sessionId = generateId();
       const ttlMinutes = parsed.data.ttlMinutes ?? 15;
       const expiresExpr = isSqliteMode()
-        ? "datetime('now', '+' || $3 || ' minutes')"
-        : "now() + ($3::text || ' minutes')::interval";
+        ? "datetime('now', '+' || $6 || ' minutes')"
+        : "now() + ($6::text || ' minutes')::interval";
       const result = await tx(
         `INSERT INTO verification_sessions (id, voter_id, election_id, status, expires_at, method, metadata)
          VALUES ($1,$2,$3,'pending', ${expiresExpr}, $4, $5)
          RETURNING *`,
-        [sessionId, voterId, electionId, ttlMinutes, method, parsed.data.metadata ?? null]
+        [sessionId, voterId, electionId, method, parsed.data.metadata ?? null, ttlMinutes]
       );
       return result;
     });
@@ -135,6 +218,10 @@ router.post("/start", async (req, res) => {
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error(err);
+    const message = err instanceof Error ? err.message : String(err);
+    if (/No voter profile linked to user/i.test(message)) {
+      return res.status(400).json({ error: message });
+    }
     res.status(500).json({ error: "Server error" });
   }
 });

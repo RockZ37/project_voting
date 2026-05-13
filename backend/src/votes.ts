@@ -5,6 +5,7 @@ import { requireAuth } from "./middleware/authz";
 import { generateReceiptCode } from "./utils/receipt";
 import { logAuditEvent } from "./audit";
 import { generateId } from "./utils/id";
+import { resolveElectionStatus } from "./elections";
 
 const router = express.Router();
 
@@ -18,6 +19,27 @@ const CastVoteSchema = z.object({
 
 router.use(requireAuth);
 
+async function resolveVoterIdForActor(tx: typeof query, actor: { id?: string; email?: string } | undefined) {
+  if (!actor?.id) return undefined;
+
+  const byUserId = await tx("SELECT id, user_id FROM voters WHERE user_id = $1 LIMIT 1", [actor.id]);
+  const voterRow = byUserId.rows[0];
+  if (voterRow?.id) return voterRow.id as string;
+
+  if (actor.email) {
+    const byEmail = await tx("SELECT id, user_id FROM voters WHERE email = $1 LIMIT 1", [actor.email]);
+    const emailRow = byEmail.rows[0];
+    if (emailRow?.id) {
+      if (emailRow.user_id !== actor.id) {
+        await tx("UPDATE voters SET user_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2", [actor.id, emailRow.id]);
+      }
+      return emailRow.id as string;
+    }
+  }
+
+  return undefined;
+}
+
 router.post("/cast", async (req, res) => {
   const parsed = CastVoteSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.format() });
@@ -30,8 +52,13 @@ router.post("/cast", async (req, res) => {
     const inserted = await withTransaction(async (tx) => {
       voterId = parsed.data.voterId;
       if (!voterId) {
-        const vr = await tx("SELECT id FROM voters WHERE user_id = $1 LIMIT 1", [actor?.id]);
-        voterId = vr.rows[0]?.id;
+        if (verificationSessionId) {
+          const sessionResult = await tx("SELECT voter_id FROM verification_sessions WHERE id = $1 LIMIT 1", [verificationSessionId]);
+          voterId = sessionResult.rows[0]?.voter_id;
+        }
+      }
+      if (!voterId) {
+        voterId = await resolveVoterIdForActor(tx, actor);
       }
       if (!voterId) {
         throw new Error("No voter profile linked to user");
@@ -41,8 +68,9 @@ router.post("/cast", async (req, res) => {
       if (election.rowCount === 0) {
         throw new Error("Election not found");
       }
-      if (election.rows[0].status !== "active") {
-        throw new Error("Election is not active");
+      const electionStatus = resolveElectionStatus(election.rows[0]);
+      if (electionStatus !== "active") {
+        throw new Error(electionStatus === "closed" ? "Election has ended" : "Election is not active yet");
       }
 
       const cand = await tx("SELECT id FROM candidates WHERE id = $1 AND election_id = $2", [candidateId, electionId]);

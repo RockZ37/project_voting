@@ -38,6 +38,8 @@ export function AdminCreateElectionView({ onCreate, onCancel }: Props) {
       category: category || "General",
       description: description || "",
       status,
+      startAt: start.toISOString(),
+      endAt: end.toISOString(),
       ballotType: "single",
       maxVotesPerVoter: 1,
       bannerUrl: bannerPreview || undefined,
